@@ -11,27 +11,11 @@ export const apiClient: AxiosInstance = axios.create({
   withCredentials: true,
 })
 
-// Request interceptor for adding auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
-
 // Response interceptor for handling errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Redirect to login or refresh token
-      localStorage.removeItem('auth_token')
       window.location.href = '/login'
     }
     return Promise.reject(error)

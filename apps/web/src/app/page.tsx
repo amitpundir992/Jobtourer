@@ -13,12 +13,6 @@ export default function HomePage() {
             <span className="text-xl font-bold">JobTourer</span>
           </Link>
           <nav className="flex items-center space-x-4">
-            <Link href="/features" className="text-sm font-medium hover:underline">
-              Features
-            </Link>
-            <Link href="/pricing" className="text-sm font-medium hover:underline">
-              Pricing
-            </Link>
             <Link href="/login" className="text-sm font-medium hover:underline">
               Login
             </Link>
@@ -46,7 +40,7 @@ export default function HomePage() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href="/demo">Watch Demo</Link>
+                <Link href="/login">Sign in</Link>
               </Button>
             </div>
           </div>

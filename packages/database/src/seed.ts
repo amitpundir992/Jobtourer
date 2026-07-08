@@ -15,8 +15,8 @@ async function main() {
       email: 'test@jobtourer.com',
       password: hashedPassword,
       name: 'Test User',
-      email_verified: true,
-      subscription_tier: 'pro',
+      emailVerified: true,
+      subscriptionTier: 'pro',
     },
   })
 

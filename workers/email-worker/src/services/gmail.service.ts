@@ -105,7 +105,7 @@ export async function sendEmail(
     logger.info(`Sent email from draft: ${draftId}`)
 
     // Update database
-    await prisma.emailDraft.update({
+    await prisma.emailDraft.updateMany({
       where: { gmail_draft_id: draftId },
       data: {
         status: 'sent',

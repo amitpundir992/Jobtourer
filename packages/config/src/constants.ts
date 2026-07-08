@@ -6,10 +6,9 @@ export const APP_CONFIG = {
 } as const
 
 export const AUTH_CONFIG = {
-  jwt_secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-  jwt_expires_in: '7d',
-  cookie_name: 'auth_token',
-  cookie_max_age: 60 * 60 * 24 * 7, // 7 days
+  secret: process.env.BETTER_AUTH_SECRET,
+  url: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  base_path: '/api/auth',
 } as const
 
 export const SUBSCRIPTION_CONFIG = {

@@ -1,51 +1,68 @@
 import { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { betterAuth } from 'better-auth'
+import { prismaAdapter } from 'better-auth/adapters/prisma'
+import { nextCookies } from 'better-auth/next-js'
 import { prisma } from '@jobtourer/database'
+import { config as loadDotenv } from 'dotenv'
+import path from 'node:path'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-
-interface JwtPayload {
-  userId: string
+if (!process.env.BETTER_AUTH_SECRET || !process.env.GOOGLE_CLIENT_ID || !process.env.GITHUB_CLIENT_ID) {
+  loadDotenv({ path: path.resolve(process.cwd(), '.env') })
+  loadDotenv({ path: path.resolve(process.cwd(), '../../.env') })
 }
 
-export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: '7d',
-  })
-}
+const googleClientId = process.env.GOOGLE_CLIENT_ID
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
+const githubClientId = process.env.GITHUB_CLIENT_ID
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET
 
-export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as JwtPayload
-}
+export const auth = betterAuth({
+  appName: 'JobTourer',
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
+  secret: process.env.BETTER_AUTH_SECRET,
+  database: prismaAdapter(prisma, {
+    provider: 'postgresql',
+  }),
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false,
+  },
+  socialProviders: {
+    ...(googleClientId && googleClientSecret
+      ? {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          },
+        }
+      : {}),
+    ...(githubClientId && githubClientSecret
+      ? {
+          github: {
+            clientId: githubClientId,
+            clientSecret: githubClientSecret,
+          },
+        }
+      : {}),
+  },
+  plugins: [nextCookies()],
+})
 
 export async function getCurrentUser(request: NextRequest) {
-  try {
-    // Get token from cookie or Authorization header
-    const token =
-      request.cookies.get('auth_token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '')
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  })
 
-    if (!token) {
-      return null
-    }
-
-    const payload = verifyToken(token)
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        created_at: true,
-      },
-    })
-
-    return user
-  } catch (error) {
-    console.error('Auth error:', error)
+  if (!session) {
     return null
+  }
+
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    avatar: session.user.image ?? null,
+    created_at: session.user.createdAt,
   }
 }
 
