@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  password          String?
+  name              String
+  avatar            String?
+  email_verified    Boolean        @default(false)
+  oauth_provider    String?
+  oauth_id          String?
+  subscription_tier String         @default("free") // free, pro, premium
+  preferences       Json?
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+  
+  resumes           Resume[]
+  saved_jobs        SavedJob[]
+  applications      Application[]
+  subscriptions     Subscription[]
+  
+  @@index([email])
+  @@map("users")
+}
+
+model Resume {
+  id              String        @id @default(uuid())
+  user_id         String
+  title           String
+  file_url        String
+  file_name       String
+  file_size       Int
+  file_type       String
+  is_default      Boolean       @default(false)
+  parsed_data     Json?         // Skills, experience, education extracted by AI
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+  
+  user            User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  applications    Application[]
+  
+  @@index([user_id])
+  @@map("resumes")
+}
+
+model Job {
+  id               String      @id @default(uuid())
+  external_id      String      @unique // ID from source platform
+  source           String      // greenhouse, lever, remoteok, etc.
+  title            String
+  company          String
+  company_logo     String?
+  description      String      @db.Text
+  location         String?
+  job_type         String?     // full-time, part-time, contract, remote
+  experience_level String?     // junior, mid, senior
+  salary_min       Int?
+  salary_max       Int?
+  salary_currency  String?     @default("USD")
+  url              String
+  tags             String[]
+  status           String      @default("active") // active, closed, filled
+  posted_at        DateTime?
+  expires_at       DateTime?
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @updatedAt
+  
+  saved_jobs       SavedJob[]
+  applications     Application[]
+  
+  @@index([source, external_id])
+  @@index([company])
+  @@index([created_at])
+  @@map("jobs")
+}
+
+model SavedJob {
+  id           String    @id @default(uuid())
+  user_id      String
+  job_id       String
+  match_score  Float?    // 0-1 AI match score
+  missing_skills String[]
+  notes        String?   @db.Text
+  created_at   DateTime  @default(now())
+  
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job          Job       @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  
+  @@unique([user_id, job_id])
+  @@index([user_id])
+  @@map("saved_jobs")
+}
+
+model Application {
+  id              String    @id @default(uuid())
+  user_id         String
+  job_id          String
+  resume_id       String?
+  status          String    @default("draft") // draft, applied, interviewing, offered, rejected, accepted
+  email_draft_id  String?
+  applied_at      DateTime?
+  follow_up_at    DateTime?
+  notes           String?   @db.Text
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  
+  user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job             Job       @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  resume          Resume?   @relation(fields: [resume_id], references: [id], onDelete: SetNull)
+  email_draft     EmailDraft? @relation(fields: [email_draft_id], references: [id])
+  
+  @@index([user_id])
+  @@index([status])
+  @@map("applications")
+}
+
+model EmailDraft {
+  id            String        @id @default(uuid())
+  user_id       String
+  job_id        String
+  subject       String
+  body          String        @db.Text
+  gmail_draft_id String?
+  status        String        @default("draft") // draft, sent, failed
+  sent_at       DateTime?
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+  
+  applications  Application[]
+  
+  @@index([user_id])
+  @@map("email_drafts")
+}
+
+model Subscription {
+  id                String    @id @default(uuid())
+  user_id           String
+  stripe_customer_id String?  @unique
+  stripe_subscription_id String? @unique
+  tier              String    // free, pro, premium
+  status            String    // active, canceled, past_due
+  current_period_start DateTime?
+  current_period_end   DateTime?
+  cancel_at         DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@index([user_id])
+  @@index([stripe_customer_id])
+  @@map("subscriptions")
+}
+
+model SearchJob {
+  id          String    @id @default(uuid())
+  type        String    // job_search, email_generation, resume_parse
+  status      String    @default("pending") // pending, processing, completed, failed
+  data        Json?
+  result      Json?
+  error       String?
+  attempts    Int       @default(0)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  @@index([status])
+  @@index([created_at])
+  @@map("search_jobs")
+}

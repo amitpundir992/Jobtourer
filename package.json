@@ -1,0 +1,42 @@
+{
+  "name": "jobtourer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered job application automation platform",
+  "author": "Amit Pundir",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "tsx scripts/dev.ts",
+    "dev:web": "pnpm --filter @jobtourer/web dev",
+    "dev:workers": "pnpm --parallel --filter \"./workers/**\" dev",
+    "build": "pnpm --filter @jobtourer/web build",
+    "build:workers": "pnpm --parallel --filter \"./workers/**\" build",
+    "start": "pnpm --filter @jobtourer/web start",
+    "start:workers": "pnpm --parallel --filter \"./workers/**\" start",
+    "setup": "tsx scripts/setup.ts",
+    "migrate": "tsx scripts/migrate.ts",
+    "lint": "pnpm --recursive lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "test": "pnpm --recursive test",
+    "clean": "pnpm --recursive clean && node scripts/remove.mjs node_modules",
+    "db:generate": "pnpm --filter @jobtourer/database db:generate",
+    "db:push": "pnpm --filter @jobtourer/database db:push",
+    "db:migrate": "pnpm --filter @jobtourer/database db:migrate",
+    "db:studio": "pnpm --filter @jobtourer/database db:studio",
+    "db:seed": "pnpm --filter @jobtourer/database db:seed",
+    "typecheck": "pnpm --recursive typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5",
+    "turbo": "^1.13.3",
+    "tsx": "^4.7.3"
+  }
+}
