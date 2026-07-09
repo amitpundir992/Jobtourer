@@ -6,11 +6,11 @@ const applications = [
 
 export function RecentApplications() {
   return (
-    <section className="rounded-lg border bg-background p-5">
+    <section className="dashboard-card rounded-lg border p-5">
       <h2 className="text-base font-semibold">Recent applications</h2>
       <div className="mt-4 space-y-4">
         {applications.map((application) => (
-          <div key={`${application.company}-${application.role}`} className="flex items-center justify-between gap-4">
+          <div key={`${application.company}-${application.role}`} className="dashboard-list-row flex items-center justify-between gap-4">
             <div>
               <p className="font-medium">{application.role}</p>
               <p className="text-sm text-muted-foreground">{application.company}</p>

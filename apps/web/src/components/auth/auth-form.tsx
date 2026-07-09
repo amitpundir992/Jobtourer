@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { FormEvent, useState } from 'react'
 import { AlertCircle, ArrowRight, Briefcase, Chrome, Github, Loader2 } from 'lucide-react'
 
+import { AnimatedCodeBackground } from '@/components/effects/animated-code-background'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth-client'
 
@@ -105,11 +106,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   return (
     <main className="auth-shell">
-      <div className="auth-background" aria-hidden="true">
-        <span className="auth-grid" />
-        <span className="auth-sweep auth-sweep-one" />
-        <span className="auth-sweep auth-sweep-two" />
-      </div>
+      <AnimatedCodeBackground />
 
       <div className="auth-layout">
         <section className="auth-brand-panel">
@@ -202,7 +199,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     autoComplete="name"
                     required
                     minLength={2}
-                    placeholder="Amit Pundir"
+                    placeholder="Write your name"
                   />
                 </label>
               ) : null}

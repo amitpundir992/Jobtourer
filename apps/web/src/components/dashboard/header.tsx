@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 
 export function DashboardHeader() {
   return (
-    <header className="flex h-16 items-center justify-between border-b px-6">
+    <header className="dashboard-header flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
       <div className="relative w-full max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
-          className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          className="h-10 w-full rounded-md border bg-background/80 pl-9 pr-3 text-sm outline-none backdrop-blur focus:ring-2 focus:ring-ring"
           placeholder="Search jobs, companies, applications"
           type="search"
         />

@@ -6,11 +6,11 @@ const jobs = [
 
 export function UpcomingJobs() {
   return (
-    <section className="rounded-lg border bg-background p-5">
+    <section className="dashboard-card rounded-lg border p-5">
       <h2 className="text-base font-semibold">Top matches</h2>
       <div className="mt-4 space-y-4">
         {jobs.map((job) => (
-          <div key={`${job.company}-${job.role}`} className="flex items-center justify-between gap-4">
+          <div key={`${job.company}-${job.role}`} className="dashboard-list-row flex items-center justify-between gap-4">
             <div>
               <p className="font-medium">{job.role}</p>
               <p className="text-sm text-muted-foreground">{job.company}</p>
