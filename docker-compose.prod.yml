@@ -1,8 +1,6 @@
 # Production Docker Compose configuration
 # Use: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
 
-version: '3.8'
-
 services:
   postgres:
     environment:
@@ -16,6 +14,7 @@ services:
       - /data/redis:/data
 
   app:
+    image: jobtourer:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -41,6 +40,7 @@ services:
       retries: 3
 
   search-worker:
+    image: jobtourer-search-worker:latest
     build:
       context: .
       dockerfile: workers/search-worker/Dockerfile
@@ -53,6 +53,7 @@ services:
       - redis
 
   email-worker:
+    image: jobtourer-email-worker:latest
     build:
       context: .
       dockerfile: workers/email-worker/Dockerfile

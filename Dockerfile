@@ -1,5 +1,6 @@
 # Base stage
 FROM node:20-alpine AS base
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
 ENV PNPM_HOME=/usr/local/bin
 
@@ -18,6 +19,8 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps ./apps
+COPY --from=deps /app/packages ./packages
 COPY . .
 
 # Generate Prisma client
@@ -49,7 +52,7 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "apps/web/server.js"]
