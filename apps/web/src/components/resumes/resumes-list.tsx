@@ -1,6 +1,10 @@
 const resumes = [
   { title: 'Frontend Resume', file: 'frontend-resume.pdf', status: 'Default' },
-  { title: 'Full Stack Resume', file: 'full-stack-resume.pdf', status: 'Ready' },
+  {
+    title: 'Full Stack Resume',
+    file: 'full-stack-resume.pdf',
+    status: 'Ready',
+  },
 ]
 
 export function ResumesList() {

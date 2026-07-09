@@ -7,9 +7,12 @@ import { calculateMatchScore } from './services/matching.service'
 
 config()
 
-const connection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-})
+const connection = new Redis(
+  process.env.REDIS_URL || 'redis://localhost:6379',
+  {
+    maxRetriesPerRequest: null,
+  }
+)
 
 const jobSearchQueue = new Queue('job-search', { connection })
 

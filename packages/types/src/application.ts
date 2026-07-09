@@ -19,13 +19,13 @@ export interface Application {
   updated_at: Date
 }
 
-export type ApplicationStatus = 
-  | 'draft' 
-  | 'applied' 
-  | 'interviewing' 
-  | 'offered' 
-  | 'rejected' 
-  | 'accepted' 
+export type ApplicationStatus =
+  | 'draft'
+  | 'applied'
+  | 'interviewing'
+  | 'offered'
+  | 'rejected'
+  | 'accepted'
   | 'withdrawn'
 
 export interface CreateApplicationInput {

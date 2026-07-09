@@ -11,7 +11,7 @@ export default function DashboardPage() {
           <h1 className="mt-2 text-3xl font-bold">Dashboard</h1>
         </div>
         <p className="text-muted-foreground">
-          Welcome back! Here's what's happening with your job search.
+          Welcome back! Here&apos;s what&apos;s happening with your job search.
         </p>
         <div className="dashboard-hero-pulse" aria-hidden="true">
           <span />

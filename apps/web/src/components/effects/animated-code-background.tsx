@@ -27,7 +27,14 @@ export function AnimatedCodeBackground({
   intensity = 'calm',
 }: AnimatedCodeBackgroundProps) {
   return (
-    <div className={cn('animated-code-bg', `animated-code-bg-${intensity}`, className)} aria-hidden="true">
+    <div
+      className={cn(
+        'animated-code-bg',
+        `animated-code-bg-${intensity}`,
+        className
+      )}
+      aria-hidden="true"
+    >
       <span className="animated-code-grid" />
       <span className="animated-code-beam animated-code-beam-one" />
       <span className="animated-code-beam animated-code-beam-two" />

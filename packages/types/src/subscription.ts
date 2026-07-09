@@ -14,12 +14,8 @@ export interface Subscription {
 
 export type SubscriptionTier = 'free' | 'pro' | 'premium'
 
-export type SubscriptionStatus = 
-  | 'active' 
-  | 'canceled' 
-  | 'past_due' 
-  | 'incomplete' 
-  | 'trialing'
+export type SubscriptionStatus =
+  'active' | 'canceled' | 'past_due' | 'incomplete' | 'trialing'
 
 export interface SubscriptionPlan {
   tier: SubscriptionTier

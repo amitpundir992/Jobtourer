@@ -81,10 +81,10 @@ async function searchRemoteOKJobs(
   try {
     logger.info('Searching RemoteOK jobs...')
     const { data } = await axios.get('https://remoteok.com/api')
-    
+
     // RemoteOK returns JSON array
     const jobs = data.slice(1, 50) // Skip first element (metadata)
-    
+
     return jobs.map((job: any) => ({
       external_id: `remoteok-${job.id}`,
       source: 'remoteok',
@@ -106,30 +106,30 @@ async function searchHackerNewsJobs(
 ): Promise<RawJobData[]> {
   try {
     logger.info('Searching Hacker News jobs...')
-    
+
     // Get "Who is hiring?" thread
     const { data } = await axios.get(
       'https://hacker-news.firebaseio.com/v0/item/39151747.json'
     )
-    
+
     // Parse job comments
     const jobIds = data.kids?.slice(0, 50) || []
     const jobs: RawJobData[] = []
-    
+
     for (const id of jobIds) {
       try {
         const { data: comment } = await axios.get(
           `https://hacker-news.firebaseio.com/v0/item/${id}.json`
         )
-        
+
         if (comment.text) {
           const $ = cheerio.load(comment.text)
           const text = $.text()
-          
+
           // Extract company name (usually first line)
-          const lines = text.split('\n').filter(l => l.trim())
+          const lines = text.split('\n').filter((l) => l.trim())
           const company = lines[0] || 'Unknown'
-          
+
           jobs.push({
             external_id: `hn-${id}`,
             source: 'hackernews',
@@ -145,7 +145,7 @@ async function searchHackerNewsJobs(
         logger.error(`Error parsing HN job ${id}:`, error)
       }
     }
-    
+
     return jobs
   } catch (error) {
     logger.error('Error searching Hacker News:', error)

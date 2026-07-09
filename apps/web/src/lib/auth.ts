@@ -6,7 +6,11 @@ import { prisma } from '@jobtourer/database'
 import { config as loadDotenv } from 'dotenv'
 import path from 'node:path'
 
-if (!process.env.BETTER_AUTH_SECRET || !process.env.GOOGLE_CLIENT_ID || !process.env.GITHUB_CLIENT_ID) {
+if (
+  !process.env.BETTER_AUTH_SECRET ||
+  !process.env.GOOGLE_CLIENT_ID ||
+  !process.env.GITHUB_CLIENT_ID
+) {
   loadDotenv({ path: path.resolve(process.cwd(), '.env') })
   loadDotenv({ path: path.resolve(process.cwd(), '../../.env') })
 }

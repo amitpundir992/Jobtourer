@@ -53,7 +53,7 @@ export interface WebhookEvent<T = any> {
 }
 
 export interface StripeWebhookEvent extends WebhookEvent {
-  type: 
+  type:
     | 'customer.subscription.created'
     | 'customer.subscription.updated'
     | 'customer.subscription.deleted'

@@ -37,19 +37,19 @@ export async function generateText(prompt: string): Promise<string> {
 
 async function generateWithOpenAI(prompt: string): Promise<string> {
   if (!openai) throw new Error('OpenAI client not initialized')
-  
+
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.7,
   })
-  
+
   return completion.choices[0]?.message?.content || ''
 }
 
 async function generateWithGemini(prompt: string): Promise<string> {
   if (!gemini) throw new Error('Gemini client not initialized')
-  
+
   const model = gemini.getGenerativeModel({ model: 'gemini-1.5-flash' })
   const result = await model.generateContent(prompt)
   return result.response.text()
@@ -57,13 +57,13 @@ async function generateWithGemini(prompt: string): Promise<string> {
 
 async function generateWithClaude(prompt: string): Promise<string> {
   if (!claude) throw new Error('Claude client not initialized')
-  
+
   const message = await claude.messages.create({
     model: 'claude-3-5-sonnet-20241022',
     max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   })
-  
+
   const content = message.content[0]
   return content.type === 'text' ? content.text : ''
 }

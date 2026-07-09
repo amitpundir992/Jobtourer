@@ -14,7 +14,11 @@ const nextConfig = {
     '@jobtourer/config',
   ],
   images: {
-    domains: ['localhost', 'lh3.googleusercontent.com', 'avatars.githubusercontent.com'],
+    domains: [
+      'localhost',
+      'lh3.googleusercontent.com',
+      'avatars.githubusercontent.com',
+    ],
     remotePatterns: [
       {
         protocol: 'https',

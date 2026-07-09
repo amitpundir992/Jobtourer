@@ -38,7 +38,17 @@ export const createApplicationSchema = z.object({
 })
 
 export const updateApplicationSchema = z.object({
-  status: z.enum(['draft', 'applied', 'interviewing', 'offered', 'rejected', 'accepted', 'withdrawn']).optional(),
+  status: z
+    .enum([
+      'draft',
+      'applied',
+      'interviewing',
+      'offered',
+      'rejected',
+      'accepted',
+      'withdrawn',
+    ])
+    .optional(),
   resume_id: z.string().uuid().optional(),
   applied_at: z.coerce.date().optional(),
   follow_up_at: z.coerce.date().optional(),
@@ -49,7 +59,9 @@ export const updateApplicationSchema = z.object({
 export const generateEmailSchema = z.object({
   job_id: z.string().uuid(),
   resume_id: z.string().uuid(),
-  tone: z.enum(['professional', 'casual', 'enthusiastic']).default('professional'),
+  tone: z
+    .enum(['professional', 'casual', 'enthusiastic'])
+    .default('professional'),
   include_portfolio: z.boolean().default(false),
 })
 
@@ -58,11 +70,13 @@ export const updatePreferencesSchema = z.object({
   job_types: z.array(z.string()).optional(),
   locations: z.array(z.string()).optional(),
   experience_levels: z.array(z.string()).optional(),
-  salary_range: z.object({
-    min: z.number(),
-    max: z.number(),
-    currency: z.string(),
-  }).optional(),
+  salary_range: z
+    .object({
+      min: z.number(),
+      max: z.number(),
+      currency: z.string(),
+    })
+    .optional(),
   keywords: z.array(z.string()).optional(),
   email_notifications: z.boolean().optional(),
   search_frequency: z.enum(['daily', 'weekly']).optional(),

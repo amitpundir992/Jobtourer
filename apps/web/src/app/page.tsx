@@ -1,7 +1,15 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { AnimatedCodeBackground } from '@/components/effects/animated-code-background'
-import { ArrowRight, Briefcase, CheckCircle2, Mail, Sparkles, Target, Zap } from 'lucide-react'
+import {
+  ArrowRight,
+  Briefcase,
+  CheckCircle2,
+  Mail,
+  Sparkles,
+  Target,
+  Zap,
+} from 'lucide-react'
 
 export default function HomePage() {
   return (
@@ -36,7 +44,8 @@ export default function HomePage() {
               Automate Your Job Search with AI
             </h1>
             <p className="mt-6 max-w-2xl text-xl leading-8 text-muted-foreground">
-              Let JobTourer find jobs, match them to your resume, and generate personalized application emails while your pipeline keeps moving.
+              Let JobTourer find jobs, match them to your resume, and generate
+              personalized application emails while your pipeline keeps moving.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Button size="lg" asChild>

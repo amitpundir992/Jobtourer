@@ -39,12 +39,18 @@ function startService(service: (typeof services)[number]) {
   })
 
   proc.stdout?.on('data', (data) => {
-    const lines = data.toString().split('\n').filter((line: string) => line.trim())
+    const lines = data
+      .toString()
+      .split('\n')
+      .filter((line: string) => line.trim())
     lines.forEach((line: string) => log(service.name, line, service.color))
   })
 
   proc.stderr?.on('data', (data) => {
-    const lines = data.toString().split('\n').filter((line: string) => line.trim())
+    const lines = data
+      .toString()
+      .split('\n')
+      .filter((line: string) => line.trim())
     lines.forEach((line: string) => log(service.name, line, '\x1b[31m'))
   })
 

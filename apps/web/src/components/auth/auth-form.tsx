@@ -3,7 +3,14 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useState } from 'react'
-import { AlertCircle, ArrowRight, Briefcase, Chrome, Github, Loader2 } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowRight,
+  Briefcase,
+  Chrome,
+  Github,
+  Loader2,
+} from 'lucide-react'
 
 import { AnimatedCodeBackground } from '@/components/effects/animated-code-background'
 import { Button } from '@/components/ui/button'
@@ -19,7 +26,8 @@ const content = {
   login: {
     eyebrow: 'Welcome back',
     title: 'Sign in to JobTourer',
-    subtitle: 'Review matches, track applications, and continue your job search workflow.',
+    subtitle:
+      'Review matches, track applications, and continue your job search workflow.',
     submit: 'Sign in',
     switchText: 'New to JobTourer?',
     switchHref: '/signup',
@@ -29,7 +37,8 @@ const content = {
   signup: {
     eyebrow: 'Start free',
     title: 'Create your JobTourer account',
-    subtitle: 'Set up your workspace for AI job matching, resume management, and application tracking.',
+    subtitle:
+      'Set up your workspace for AI job matching, resume management, and application tracking.',
     submit: 'Create account',
     switchText: 'Already have an account?',
     switchHref: '/login',
@@ -43,7 +52,9 @@ export function AuthForm({ mode }: AuthFormProps) {
   const copy = content[mode]
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [socialProvider, setSocialProvider] = useState<'google' | 'github' | null>(null)
+  const [socialProvider, setSocialProvider] = useState<
+    'google' | 'github' | null
+  >(null)
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -77,7 +88,11 @@ export function AuthForm({ mode }: AuthFormProps) {
       router.replace('/dashboard')
       router.refresh()
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : 'Authentication failed')
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Authentication failed'
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -96,11 +111,17 @@ export function AuthForm({ mode }: AuthFormProps) {
       })
 
       if (result.error) {
-        throw new Error(result.error.message || `Could not continue with ${provider}`)
+        throw new Error(
+          result.error.message || `Could not continue with ${provider}`
+        )
       }
     } catch (caughtError) {
       setSocialProvider(null)
-      setError(caughtError instanceof Error ? caughtError.message : `Could not continue with ${provider}`)
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : `Could not continue with ${provider}`
+      )
     }
   }
 
@@ -120,7 +141,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           <div className="auth-brand-copy">
             <p className="auth-eyebrow">{copy.eyebrow}</p>
             <h1 className="auth-headline">
-              AI-assisted job search, organized from first match to final follow-up.
+              AI-assisted job search, organized from first match to final
+              follow-up.
             </h1>
             <div className="auth-metrics">
               <div className="auth-metric">
@@ -139,7 +161,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
 
           <p className="auth-footnote">
-            Built for focused application workflows, background search, and reusable resumes.
+            Built for focused application workflows, background search, and
+            reusable resumes.
           </p>
         </section>
 
@@ -157,7 +180,10 @@ export function AuthForm({ mode }: AuthFormProps) {
               </div>
             ) : null}
 
-            <div className="auth-social-grid" aria-label="Social sign in options">
+            <div
+              className="auth-social-grid"
+              aria-label="Social sign in options"
+            >
               <button
                 className="auth-social-button"
                 type="button"
@@ -220,14 +246,20 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <input
                   name="password"
                   type="password"
-                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                  autoComplete={
+                    mode === 'signup' ? 'new-password' : 'current-password'
+                  }
                   required
                   minLength={8}
                   placeholder="At least 8 characters"
                 />
               </label>
 
-              <Button className="auth-submit" type="submit" disabled={isSubmitting}>
+              <Button
+                className="auth-submit"
+                type="submit"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -239,9 +271,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             <p className="auth-switch">
               {copy.switchText}{' '}
-              <Link href={copy.switchHref}>
-                {copy.switchLabel}
-              </Link>
+              <Link href={copy.switchHref}>{copy.switchLabel}</Link>
             </p>
           </div>
         </section>

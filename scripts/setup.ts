@@ -43,7 +43,10 @@ async function checkDependencies() {
       execSync(check.command, { stdio: 'pipe' })
       log(`OK ${check.name} found`, colors.green)
     } catch {
-      log(`ERROR ${check.name} not found (required: ${check.required})`, colors.red)
+      log(
+        `ERROR ${check.name} not found (required: ${check.required})`,
+        colors.red
+      )
       allPassed = false
     }
   }
@@ -74,7 +77,10 @@ async function setupEnv() {
 
   fs.copyFileSync(envExample, env)
   log('OK created .env file', colors.green)
-  log('WARN update .env with real credentials before running production-like flows', colors.yellow)
+  log(
+    'WARN update .env with real credentials before running production-like flows',
+    colors.yellow
+  )
 
   return true
 }
@@ -101,7 +107,10 @@ async function setupDatabase() {
       log('OK database migrated', colors.green)
     }
   } else {
-    log('INFO skipping migration. Run with --migrate to migrate database', colors.blue)
+    log(
+      'INFO skipping migration. Run with --migrate to migrate database',
+      colors.blue
+    )
   }
 
   return true
@@ -112,7 +121,10 @@ async function main() {
   log('='.repeat(50), colors.blue)
 
   if (!(await checkDependencies())) {
-    log('\nERROR some dependencies are missing. Install them first.', colors.red)
+    log(
+      '\nERROR some dependencies are missing. Install them first.',
+      colors.red
+    )
     process.exit(1)
   }
 

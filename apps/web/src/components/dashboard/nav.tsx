@@ -12,7 +12,10 @@ const items = [
 export function DashboardNav() {
   return (
     <aside className="dashboard-nav hidden w-64 p-4 md:block">
-      <Link href="/dashboard" className="mb-8 flex items-center gap-2 text-xl font-semibold">
+      <Link
+        href="/dashboard"
+        className="mb-8 flex items-center gap-2 text-xl font-semibold"
+      >
         <span className="dashboard-logo-mark">
           <Briefcase className="h-4 w-4" />
         </span>

@@ -99,7 +99,9 @@ export const useSetDefaultResume = () => {
   return useMutation({
     mutationFn: async (resumeId: string) => {
       try {
-        const { data } = await apiClient.post(`/resumes/${resumeId}/set-default`)
+        const { data } = await apiClient.post(
+          `/resumes/${resumeId}/set-default`
+        )
         return data
       } catch (error) {
         throw handleApiError(error)

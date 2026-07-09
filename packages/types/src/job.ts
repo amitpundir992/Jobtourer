@@ -21,30 +21,20 @@ export interface Job {
   updated_at: Date
 }
 
-export type JobSource = 
-  | 'greenhouse' 
-  | 'lever' 
-  | 'remoteok' 
-  | 'hackernews' 
-  | 'reddit' 
+export type JobSource =
+  | 'greenhouse'
+  | 'lever'
+  | 'remoteok'
+  | 'hackernews'
+  | 'reddit'
   | 'company_website'
   | 'manual'
 
-export type JobType = 
-  | 'full-time' 
-  | 'part-time' 
-  | 'contract' 
-  | 'freelance' 
-  | 'internship' 
-  | 'remote'
+export type JobType =
+  'full-time' | 'part-time' | 'contract' | 'freelance' | 'internship' | 'remote'
 
-export type ExperienceLevel = 
-  | 'entry' 
-  | 'junior' 
-  | 'mid' 
-  | 'senior' 
-  | 'lead' 
-  | 'principal'
+export type ExperienceLevel =
+  'entry' | 'junior' | 'mid' | 'senior' | 'lead' | 'principal'
 
 export type JobStatus = 'active' | 'closed' | 'filled' | 'expired'
 

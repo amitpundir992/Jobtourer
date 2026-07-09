@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, handleApiError } from '@/lib/api-client'
-import type { CreateApplicationInput, UpdateApplicationInput } from '@jobtourer/types'
+import type {
+  CreateApplicationInput,
+  UpdateApplicationInput,
+} from '@jobtourer/types'
 
 export const useApplications = () => {
   return useQuery({
@@ -66,7 +69,9 @@ export const useUpdateApplication = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['applications'] })
-      queryClient.invalidateQueries({ queryKey: ['applications', variables.id] })
+      queryClient.invalidateQueries({
+        queryKey: ['applications', variables.id],
+      })
     },
   })
 }
@@ -77,7 +82,9 @@ export const useDeleteApplication = () => {
   return useMutation({
     mutationFn: async (applicationId: string) => {
       try {
-        const { data } = await apiClient.delete(`/applications/${applicationId}`)
+        const { data } = await apiClient.delete(
+          `/applications/${applicationId}`
+        )
         return data
       } catch (error) {
         throw handleApiError(error)
