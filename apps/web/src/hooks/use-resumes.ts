@@ -8,7 +8,7 @@ export const useResumes = () => {
     queryFn: async () => {
       try {
         const { data } = await apiClient.get('/resumes')
-        return data
+        return data.resumes
       } catch (error) {
         throw handleApiError(error)
       }
@@ -37,11 +37,7 @@ export const useUploadResume = () => {
   return useMutation({
     mutationFn: async (formData: FormData) => {
       try {
-        const { data } = await apiClient.post('/resumes/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
+        const { data } = await apiClient.post('/resumes/upload', formData)
         return data
       } catch (error) {
         throw handleApiError(error)

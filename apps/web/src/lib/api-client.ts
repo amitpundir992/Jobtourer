@@ -1,12 +1,10 @@
 import axios, { AxiosError, AxiosInstance } from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
-
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: `${API_URL}/api/v1`,
+  baseURL: '/api',
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
   withCredentials: true,
 })
@@ -36,8 +34,11 @@ export class ApiError extends Error {
 export const handleApiError = (error: unknown): ApiError => {
   if (axios.isAxiosError(error)) {
     const statusCode = error.response?.status || 500
-    const message = error.response?.data?.message || error.message
-    const details = error.response?.data?.details
+    const responseData = error.response?.data as
+      { message?: string; error?: string; details?: unknown } | undefined
+    const message =
+      responseData?.message || responseData?.error || error.message
+    const details = responseData?.details
     return new ApiError(statusCode, message, details)
   }
   return new ApiError(500, 'An unexpected error occurred')
