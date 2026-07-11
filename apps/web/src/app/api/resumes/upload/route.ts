@@ -2,9 +2,10 @@ import { mkdir, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@jobtourer/database'
+import { Prisma, prisma } from '@jobtourer/database'
 
 import { getCurrentUser } from '@/lib/auth'
+import { parseResume } from '@/lib/resume-parser'
 
 const allowedTypes = new Set([
   'application/pdf',
@@ -67,7 +68,22 @@ export async function POST(request: NextRequest) {
   }
 
   const bytes = await file.arrayBuffer()
-  await writeFile(filePath, Buffer.from(bytes))
+  const buffer = Buffer.from(bytes)
+  await writeFile(filePath, buffer)
+
+  const parsedData = await parseResume(buffer, file.type).catch((error) => {
+    console.error('Resume parse error:', error)
+    return {
+      parse_status: 'failed' as const,
+      parse_error:
+        error instanceof Error ? error.message : 'Resume parsing failed',
+      skills: [],
+      experience: [],
+      education: [],
+      projects: [],
+    }
+  })
+  const parsedJson = parsedData as Prisma.InputJsonValue
 
   const resume = await prisma.resume.upsert({
     where: { id: existingResume?.id ?? '' },
@@ -78,6 +94,7 @@ export async function POST(request: NextRequest) {
       file_size: file.size,
       file_type: file.type,
       is_default: true,
+      parsed_data: parsedJson,
     },
     create: {
       user_id: user.id,
@@ -87,8 +104,34 @@ export async function POST(request: NextRequest) {
       file_size: file.size,
       file_type: file.type,
       is_default: true,
+      parsed_data: parsedJson,
     },
   })
 
-  return NextResponse.json({ resume })
+  if (parsedData.parse_status === 'parsed') {
+    const profile = await prisma.profile.findUnique({
+      where: { user_id: user.id },
+    })
+
+    await prisma.profile.upsert({
+      where: { user_id: user.id },
+      update: {
+        skills:
+          profile && profile.skills.length > 0
+            ? undefined
+            : (parsedData.skills ?? []),
+        experience: profile?.experience
+          ? undefined
+          : (parsedData.summary ?? parsedData.experience?.[0]?.description),
+      },
+      create: {
+        user_id: user.id,
+        skills: parsedData.skills ?? [],
+        experience:
+          parsedData.summary ?? parsedData.experience?.[0]?.description,
+      },
+    })
+  }
+
+  return NextResponse.json({ resume, parsed_data: parsedData })
 }

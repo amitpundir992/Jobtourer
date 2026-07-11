@@ -13,9 +13,13 @@ export interface Resume {
 }
 
 export interface ParsedResumeData {
+  parse_status?: 'parsed' | 'empty' | 'failed'
+  parse_error?: string
+  raw_text?: string
   skills?: string[]
   experience?: Experience[]
   education?: Education[]
+  projects?: string[]
   certifications?: string[]
   summary?: string
 }

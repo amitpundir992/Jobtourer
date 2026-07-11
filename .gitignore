@@ -97,6 +97,7 @@ packages/database/prisma/dev.db-journal
 
 # Uploads
 uploads/
+apps/web/public/resumes/
 temp/
 .tmp/
 tmp/
