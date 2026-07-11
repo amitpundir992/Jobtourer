@@ -40,7 +40,8 @@ export function useUpdateProfile() {
         throw handleApiError(error)
       }
     },
-    onSuccess: () => {
+    onSuccess: (profile) => {
+      queryClient.setQueryData(['profile'], profile)
       queryClient.invalidateQueries({ queryKey: ['profile'] })
     },
   })

@@ -1,13 +1,42 @@
 import { Briefcase, FileCheck, Mail, TrendingUp } from 'lucide-react'
+import { headers } from 'next/headers'
+import { prisma } from '@jobtourer/database'
 
-const stats = [
-  { label: 'Matched jobs', value: '24', icon: Briefcase },
-  { label: 'Applications', value: '8', icon: FileCheck },
-  { label: 'Draft emails', value: '5', icon: Mail },
-  { label: 'Avg. match', value: '82%', icon: TrendingUp },
-]
+import { auth } from '@/lib/auth'
 
-export function StatsCards() {
+export async function StatsCards() {
+  const session = await auth.api.getSession({ headers: await headers() })
+
+  const [matchedJobs, applications, draftEmails, savedJobs] = session
+    ? await Promise.all([
+        prisma.savedJob.count({ where: { user_id: session.user.id } }),
+        prisma.application.count({ where: { user_id: session.user.id } }),
+        prisma.emailDraft.count({
+          where: { user_id: session.user.id, status: 'draft' },
+        }),
+        prisma.savedJob.findMany({
+          where: { user_id: session.user.id, match_score: { not: null } },
+          select: { match_score: true },
+        }),
+      ])
+    : [0, 0, 0, []]
+
+  const averageMatch =
+    savedJobs.length > 0
+      ? `${Math.round(
+          (savedJobs.reduce((sum, job) => sum + (job.match_score ?? 0), 0) /
+            savedJobs.length) *
+            100
+        )}%`
+      : '-'
+
+  const stats = [
+    { label: 'Matched jobs', value: String(matchedJobs), icon: Briefcase },
+    { label: 'Applications', value: String(applications), icon: FileCheck },
+    { label: 'Draft emails', value: String(draftEmails), icon: Mail },
+    { label: 'Avg. match', value: averageMatch, icon: TrendingUp },
+  ]
+
   return (
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => (

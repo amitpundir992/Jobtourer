@@ -42,16 +42,16 @@ export async function JobsTable() {
             jobs.map((job) => (
               <tr key={job.id} className="border-b last:border-0">
                 <td className="px-4 py-3 font-medium">{job.title}</td>
-              <td className="px-4 py-3">{job.company}</td>
-              <td className="px-4 py-3 text-muted-foreground">
-                {job.location}
-              </td>
-              <td className="px-4 py-3 font-semibold text-green-600">
-                {job.saved_jobs[0]?.match_score
-                  ? `${Math.round(job.saved_jobs[0].match_score * 100)}%`
-                  : '-'}
-              </td>
-            </tr>
+                <td className="px-4 py-3">{job.company}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {job.location ?? '-'}
+                </td>
+                <td className="px-4 py-3 font-semibold text-green-600">
+                  {job.saved_jobs[0]?.match_score
+                    ? `${Math.round(job.saved_jobs[0].match_score * 100)}%`
+                    : '-'}
+                </td>
+              </tr>
             ))
           )}
         </tbody>

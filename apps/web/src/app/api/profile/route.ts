@@ -26,6 +26,10 @@ function cleanList(value: string[] | undefined) {
   return value?.map((item) => item.trim()).filter(Boolean)
 }
 
+function cleanSalary(value: number | null | undefined) {
+  return value && value > 0 ? value : null
+}
+
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser(request)
   if (!user) {
@@ -51,8 +55,8 @@ export async function PATCH(request: NextRequest) {
       skills: cleanList(input.skills),
       experience: cleanText(input.experience),
       preferred_locations: cleanList(input.preferred_locations),
-      salary_min: input.salary_min,
-      salary_max: input.salary_max,
+      salary_min: cleanSalary(input.salary_min),
+      salary_max: cleanSalary(input.salary_max),
       salary_currency: input.salary_currency || 'USD',
       work_preference: cleanText(input.work_preference),
       preferred_companies: cleanList(input.preferred_companies),

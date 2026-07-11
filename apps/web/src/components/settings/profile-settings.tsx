@@ -16,6 +16,9 @@ const currencies = [
   { code: 'SGD', label: 'SGD - Singapore Dollar' },
   { code: 'AED', label: 'AED - UAE Dirham' },
   { code: 'JPY', label: 'JPY - Japanese Yen' },
+  { code: 'CHF', label: 'CHF - Swiss Franc' },
+  { code: 'CNY', label: 'CNY - Chinese Yuan' },
+  { code: 'HKD', label: 'HKD - Hong Kong Dollar' },
 ]
 
 function splitList(value: string) {
@@ -35,16 +38,20 @@ function optionalNumber(value: FormDataEntryValue | null) {
   }
 
   const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function displaySalary(value: number | null | undefined) {
+  return value && value > 0 ? value : ''
 }
 
 const fieldClass =
-  'h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring'
+  'h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring'
 
 const textareaClass =
-  'min-h-24 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
+  'min-h-24 w-full min-w-0 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
 
-const labelClass = 'grid gap-2 text-sm font-medium'
+const labelClass = 'grid min-w-0 gap-2 text-sm font-medium'
 
 export function ProfileSettings() {
   const { data: profile, isLoading } = useProfile()
@@ -100,7 +107,11 @@ export function ProfileSettings() {
         </p>
       </div>
 
-      <form className="grid gap-5" onSubmit={onSubmit}>
+      <form
+        key={profile?.updated_at ?? profile?.id ?? 'new-profile'}
+        className="grid gap-5"
+        onSubmit={onSubmit}
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <label className={labelClass}>
             Preferred role
@@ -165,7 +176,7 @@ export function ProfileSettings() {
               min={0}
               name="salary_min"
               type="number"
-              defaultValue={profile?.salary_min ?? ''}
+              defaultValue={displaySalary(profile?.salary_min)}
             />
           </label>
 
@@ -176,12 +187,12 @@ export function ProfileSettings() {
               min={0}
               name="salary_max"
               type="number"
-              defaultValue={profile?.salary_max ?? ''}
+              defaultValue={displaySalary(profile?.salary_max)}
             />
           </label>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-[1fr_160px]">
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)]">
           <label className={labelClass}>
             Preferred companies
             <input

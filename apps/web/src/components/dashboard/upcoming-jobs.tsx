@@ -1,28 +1,45 @@
-const jobs = [
-  { company: 'CloudPeak', role: 'Senior React Engineer', match: '91%' },
-  { company: 'LedgerWorks', role: 'Node.js Engineer', match: '86%' },
-  { company: 'BrightHire', role: 'Platform Engineer', match: '79%' },
-]
+import { headers } from 'next/headers'
+import { prisma } from '@jobtourer/database'
 
-export function UpcomingJobs() {
+import { auth } from '@/lib/auth'
+
+export async function UpcomingJobs() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  const jobs = session
+    ? await prisma.savedJob.findMany({
+        where: { user_id: session.user.id },
+        include: { job: true },
+        orderBy: { match_score: 'desc' },
+        take: 5,
+      })
+    : []
+
   return (
     <section className="dashboard-card rounded-lg border p-5">
       <h2 className="text-base font-semibold">Top matches</h2>
       <div className="mt-4 space-y-4">
-        {jobs.map((job) => (
-          <div
-            key={`${job.company}-${job.role}`}
-            className="dashboard-list-row flex items-center justify-between gap-4"
-          >
-            <div>
-              <p className="font-medium">{job.role}</p>
-              <p className="text-sm text-muted-foreground">{job.company}</p>
+        {jobs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No matched jobs yet.</p>
+        ) : (
+          jobs.map((savedJob) => (
+            <div
+              key={savedJob.id}
+              className="dashboard-list-row flex items-center justify-between gap-4"
+            >
+              <div>
+                <p className="font-medium">{savedJob.job.title}</p>
+                <p className="text-sm text-muted-foreground">
+                  {savedJob.job.company}
+                </p>
+              </div>
+              <span className="text-sm font-semibold text-green-600">
+                {savedJob.match_score
+                  ? `${Math.round(savedJob.match_score * 100)}%`
+                  : '-'}
+              </span>
             </div>
-            <span className="text-sm font-semibold text-green-600">
-              {job.match}
-            </span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </section>
   )
