@@ -1,6 +1,7 @@
 import { Search, SlidersHorizontal } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { FindRecommendationsButton } from './find-recommendations-button'
 
 export function JobsFilters() {
   return (
@@ -17,6 +18,7 @@ export function JobsFilters() {
         <SlidersHorizontal className="mr-2 h-4 w-4" />
         Filters
       </Button>
+      <FindRecommendationsButton />
     </div>
   )
 }

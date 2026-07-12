@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Briefcase, FileText, Home, Send, Settings } from 'lucide-react'
 
+import { LogoutButton } from '@/components/auth/logout-button'
+
 const items = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/jobs', label: 'Jobs', icon: Briefcase },
@@ -11,7 +13,7 @@ const items = [
 
 export function DashboardNav() {
   return (
-    <aside className="dashboard-nav hidden w-64 p-4 md:block">
+    <aside className="dashboard-nav hidden w-64 flex-col p-4 md:flex">
       <Link
         href="/dashboard"
         className="mb-8 flex items-center gap-2 text-xl font-semibold"
@@ -21,7 +23,7 @@ export function DashboardNav() {
         </span>
         <span>JobTourer</span>
       </Link>
-      <nav className="space-y-1">
+      <nav className="flex-1 space-y-1">
         {items.map((item) => (
           <Link
             key={item.href}
@@ -33,6 +35,9 @@ export function DashboardNav() {
           </Link>
         ))}
       </nav>
+      <div className="border-t pt-3">
+        <LogoutButton />
+      </div>
     </aside>
   )
 }

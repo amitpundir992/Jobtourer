@@ -1,6 +1,7 @@
 import { Bell, Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { LogoutButton } from '@/components/auth/logout-button'
 
 export function DashboardHeader() {
   return (
@@ -16,6 +17,9 @@ export function DashboardHeader() {
       <Button variant="ghost" size="icon" aria-label="Notifications">
         <Bell className="h-4 w-4" />
       </Button>
+      <div className="md:hidden">
+        <LogoutButton compact />
+      </div>
     </header>
   )
 }

@@ -5,16 +5,11 @@ import { auth } from '@/lib/auth'
 
 export async function JobsTable() {
   const session = await auth.api.getSession({ headers: await headers() })
-  const jobs = session
-    ? await prisma.job.findMany({
-        where: { status: 'active' },
-        include: {
-          saved_jobs: {
-            where: { user_id: session.user.id },
-            select: { match_score: true },
-          },
-        },
-        orderBy: { created_at: 'desc' },
+  const recommendations = session
+    ? await prisma.savedJob.findMany({
+        where: { user_id: session.user.id, job: { status: 'active' } },
+        include: { job: true },
+        orderBy: { match_score: 'desc' },
         take: 25,
       })
     : []
@@ -31,24 +26,43 @@ export async function JobsTable() {
           </tr>
         </thead>
         <tbody>
-          {jobs.length === 0 ? (
+          {recommendations.length === 0 ? (
             <tr>
               <td className="px-4 py-6 text-muted-foreground" colSpan={4}>
-                No job matches yet. Jobs will appear here after your search
-                automation or manual import saves real job records.
+                No job matches yet. Select Find recommendations to search for
+                real jobs using your profile and resume.
               </td>
             </tr>
           ) : (
-            jobs.map((job) => (
-              <tr key={job.id} className="border-b last:border-0">
-                <td className="px-4 py-3 font-medium">{job.title}</td>
-                <td className="px-4 py-3">{job.company}</td>
+            recommendations.map((recommendation) => (
+              <tr key={recommendation.id} className="border-b last:border-0">
+                <td className="px-4 py-3 font-medium">
+                  <a
+                    className="hover:underline"
+                    href={recommendation.job.url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {recommendation.job.title}
+                  </a>
+                  <div className="mt-0.5 text-xs font-normal text-muted-foreground">
+                    via{' '}
+                    <a
+                      className="hover:underline"
+                      href="https://remoteok.com"
+                      target="_blank"
+                    >
+                      Remote OK
+                    </a>
+                  </div>
+                </td>
+                <td className="px-4 py-3">{recommendation.job.company}</td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {job.location ?? '-'}
+                  {recommendation.job.location ?? '-'}
                 </td>
                 <td className="px-4 py-3 font-semibold text-green-600">
-                  {job.saved_jobs[0]?.match_score
-                    ? `${Math.round(job.saved_jobs[0].match_score * 100)}%`
+                  {recommendation.match_score !== null
+                    ? `${Math.round(recommendation.match_score * 100)}%`
                     : '-'}
                 </td>
               </tr>

@@ -31,6 +31,10 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
   },
+  session: {
+    expiresIn: 60 * 60 * 24 * 30,
+    updateAge: 60 * 60 * 24,
+  },
   socialProviders: {
     ...(googleClientId && googleClientSecret
       ? {
