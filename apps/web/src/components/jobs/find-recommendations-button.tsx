@@ -23,6 +23,7 @@ export function FindRecommendationsButton() {
         error?: string
         jobsScanned?: number
         recommendationsSaved?: number
+        sources?: Record<string, number>
       }
 
       if (!response.ok) {
@@ -30,10 +31,14 @@ export function FindRecommendationsButton() {
       }
 
       const saved = result.recommendationsSaved ?? 0
+      const sources = Object.entries(result.sources ?? {})
+        .filter(([, count]) => count > 0)
+        .map(([source, count]) => `${source} ${count}`)
+        .join(', ')
       setMessage(
         saved > 0
-          ? `${saved} recommendations updated`
-          : `No relevant matches found in ${result.jobsScanned ?? 0} current jobs`
+          ? `${saved} matches from ${sources || `${result.jobsScanned ?? 0} jobs`}`
+          : `No relevant matches in ${result.jobsScanned ?? 0} jobs (${sources || 'sources unavailable'})`
       )
       router.refresh()
     } catch (error) {

@@ -3,6 +3,12 @@ import { prisma } from '@jobtourer/database'
 
 import { auth } from '@/lib/auth'
 
+const sourceDetails: Record<string, { label: string; url: string }> = {
+  greenhouse: { label: 'Greenhouse', url: 'https://www.greenhouse.com' },
+  lever: { label: 'Lever', url: 'https://www.lever.co' },
+  remoteok: { label: 'Remote OK', url: 'https://remoteok.com' },
+}
+
 export async function JobsTable() {
   const session = await auth.api.getSession({ headers: await headers() })
   const recommendations = session
@@ -22,13 +28,14 @@ export async function JobsTable() {
             <th className="px-4 py-3 font-medium">Role</th>
             <th className="px-4 py-3 font-medium">Company</th>
             <th className="px-4 py-3 font-medium">Location</th>
+            <th className="px-4 py-3 font-medium">Source</th>
             <th className="px-4 py-3 font-medium">Match</th>
           </tr>
         </thead>
         <tbody>
           {recommendations.length === 0 ? (
             <tr>
-              <td className="px-4 py-6 text-muted-foreground" colSpan={4}>
+              <td className="px-4 py-6 text-muted-foreground" colSpan={5}>
                 No job matches yet. Select Find recommendations to search for
                 real jobs using your profile and resume.
               </td>
@@ -45,20 +52,23 @@ export async function JobsTable() {
                   >
                     {recommendation.job.title}
                   </a>
-                  <div className="mt-0.5 text-xs font-normal text-muted-foreground">
-                    via{' '}
-                    <a
-                      className="hover:underline"
-                      href="https://remoteok.com"
-                      target="_blank"
-                    >
-                      Remote OK
-                    </a>
-                  </div>
                 </td>
                 <td className="px-4 py-3">{recommendation.job.company}</td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {recommendation.job.location ?? '-'}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  <a
+                    className="hover:underline"
+                    href={
+                      sourceDetails[recommendation.job.source]?.url ??
+                      recommendation.job.url
+                    }
+                    target="_blank"
+                  >
+                    {sourceDetails[recommendation.job.source]?.label ??
+                      recommendation.job.source}
+                  </a>
                 </td>
                 <td className="px-4 py-3 font-semibold text-green-600">
                   {recommendation.match_score !== null
