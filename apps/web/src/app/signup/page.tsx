@@ -1,5 +1,14 @@
-import { AuthForm } from '@/components/auth/auth-form'
+import { redirect } from 'next/navigation'
 
-export default function SignupPage() {
+import { AuthForm } from '@/components/auth/auth-form'
+import { getServerSession } from '@/lib/server-session'
+
+export default async function SignupPage() {
+  const session = await getServerSession()
+
+  if (session) {
+    redirect('/dashboard')
+  }
+
   return <AuthForm mode="signup" />
 }

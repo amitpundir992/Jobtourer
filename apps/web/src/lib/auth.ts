@@ -24,6 +24,11 @@ export const auth = betterAuth({
   appName: 'JobTourer',
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+  advanced: {
+    // Browser cookies are shared across localhost ports. A unique prefix keeps
+    // other local Better Auth projects from replacing this app's session.
+    cookiePrefix: 'jobtourer',
+  },
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
