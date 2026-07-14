@@ -2,7 +2,7 @@ import { prisma } from '@jobtourer/database'
 import type { ParsedResumeData } from '@jobtourer/types'
 
 const MAX_SOURCE_JOBS = 500
-const MAX_RECOMMENDATIONS = 25
+const MAX_RECOMMENDATIONS = 100
 const DEFAULT_GREENHOUSE_BOARDS = ['cloudflare', 'datadog', 'mongodb']
 const DEFAULT_LEVER_SITES = ['palantir', 'spotify', 'highspot', 'aircall']
 

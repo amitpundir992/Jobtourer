@@ -3,7 +3,8 @@
 import { FileText } from 'lucide-react'
 
 import { useResumes } from '@/hooks/use-resumes'
-import type { ParsedResumeData, Resume } from '@jobtourer/types'
+import type { Resume } from '@jobtourer/database'
+import type { ParsedResumeData } from '@jobtourer/types'
 
 function getParsedData(resume: Resume) {
   return resume.parsed_data as ParsedResumeData | null | undefined
@@ -19,8 +20,12 @@ function getRawPreview(parsedData: ParsedResumeData) {
   return parsedData.raw_text?.replace(/\s+/g, ' ').trim().slice(0, 420)
 }
 
-export function ResumesList() {
-  const { data: resumes = [], isLoading, error } = useResumes()
+export function ResumesList({ initialResumes }: { initialResumes: Resume[] }) {
+  const {
+    data: resumes = [],
+    isLoading,
+    error,
+  } = useResumes(initialResumes)
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading resume...</p>

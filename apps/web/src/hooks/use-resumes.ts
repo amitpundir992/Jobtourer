@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, handleApiError } from '@/lib/api-client'
+import type { Resume } from '@jobtourer/database'
 import type { UpdateResumeInput } from '@jobtourer/types'
 
-export const useResumes = () => {
+export const useResumes = (initialData?: Resume[]) => {
   return useQuery({
     queryKey: ['resumes'],
+    initialData,
     queryFn: async () => {
       try {
         const { data } = await apiClient.get('/resumes')
@@ -43,8 +45,8 @@ export const useUploadResume = () => {
         throw handleApiError(error)
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['resumes'] })
+    onSuccess: (result) => {
+      queryClient.setQueryData(['resumes'], [result.resume])
     },
   })
 }

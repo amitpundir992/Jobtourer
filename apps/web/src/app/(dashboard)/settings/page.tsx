@@ -3,8 +3,13 @@ import { ProfileSettings } from '@/components/settings/profile-settings'
 import { PreferencesSettings } from '@/components/settings/preferences-settings'
 import { IntegrationsSettings } from '@/components/settings/integrations-settings'
 import { BillingSettings } from '@/components/settings/billing-settings'
+import { getUserProfile } from '@/lib/profile-data'
+import { getServerSession } from '@/lib/server-session'
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await getServerSession()
+  const profile = session ? await getUserProfile(session.user.id) : null
+
   return (
     <div className="space-y-6">
       <div>
@@ -23,7 +28,7 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="profile">
-          <ProfileSettings />
+          <ProfileSettings initialProfile={profile} />
         </TabsContent>
 
         <TabsContent value="preferences">

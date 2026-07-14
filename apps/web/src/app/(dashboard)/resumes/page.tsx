@@ -1,7 +1,12 @@
 import { ResumesList } from '@/components/resumes/resumes-list'
 import { UploadResumeButton } from '@/components/resumes/upload-resume-button'
+import { getUserResumes } from '@/lib/resume-data'
+import { getServerSession } from '@/lib/server-session'
 
-export default function ResumesPage() {
+export default async function ResumesPage() {
+  const session = await getServerSession()
+  const resumes = session ? await getUserResumes(session.user.id) : []
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -14,7 +19,7 @@ export default function ResumesPage() {
         <UploadResumeButton />
       </div>
 
-      <ResumesList />
+      <ResumesList initialResumes={resumes} />
     </div>
   )
 }

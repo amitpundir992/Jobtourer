@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { apiClient, handleApiError } from '@/lib/api-client'
+import type { Profile } from '@jobtourer/database'
 
 export interface ProfileInput {
   preferred_role?: string
@@ -14,9 +15,10 @@ export interface ProfileInput {
   preferred_companies?: string[]
 }
 
-export function useProfile() {
+export function useProfile(initialData?: Profile) {
   return useQuery({
     queryKey: ['profile'],
+    initialData,
     queryFn: async () => {
       try {
         const { data } = await apiClient.get('/profile')
@@ -42,7 +44,6 @@ export function useUpdateProfile() {
     },
     onSuccess: (profile) => {
       queryClient.setQueryData(['profile'], profile)
-      queryClient.invalidateQueries({ queryKey: ['profile'] })
     },
   })
 }

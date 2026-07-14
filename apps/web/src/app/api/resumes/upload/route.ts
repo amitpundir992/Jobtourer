@@ -2,6 +2,7 @@ import { mkdir, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { Prisma, prisma } from '@jobtourer/database'
 
 import { getCurrentUser } from '@/lib/auth'
@@ -133,5 +134,6 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  revalidateTag('resume-data')
   return NextResponse.json({ resume, parsed_data: parsedData })
 }

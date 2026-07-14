@@ -1,7 +1,7 @@
-import { headers } from 'next/headers'
 import { prisma } from '@jobtourer/database'
+import { unstable_cache } from 'next/cache'
 
-import { auth } from '@/lib/auth'
+import { getServerSession } from '@/lib/server-session'
 
 const statusCards = [
   { label: 'Draft', status: 'draft' },
@@ -10,19 +10,31 @@ const statusCards = [
   { label: 'Offers', status: 'offered' },
 ]
 
+const getApplicationCounts = unstable_cache(
+  async (userId: string) => {
+    const grouped = await prisma.application.groupBy({
+      by: ['status'],
+      where: { user_id: userId },
+      _count: { _all: true },
+    })
+    return grouped.map((item) => ({
+      status: item.status,
+      count: item._count._all,
+    }))
+  },
+  ['application-counts-v1'],
+  { revalidate: 30, tags: ['application-data'] }
+)
+
 export async function ApplicationsStats() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getServerSession()
 
   const grouped = session
-    ? await prisma.application.groupBy({
-        by: ['status'],
-        where: { user_id: session.user.id },
-        _count: { _all: true },
-      })
+    ? await getApplicationCounts(session.user.id)
     : []
 
   const counts = new Map(
-    grouped.map((item) => [item.status, item._count._all])
+    grouped.map((item) => [item.status, item.count])
   )
 
   return (

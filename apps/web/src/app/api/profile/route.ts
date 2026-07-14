@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@jobtourer/database'
 import { z } from 'zod'
 
 import { getCurrentUser } from '@/lib/auth'
-import { ensureProfile } from '@/lib/profile'
+import { getUserProfile } from '@/lib/profile-data'
 
 const profileSchema = z.object({
   preferred_role: z.string().trim().nullable().optional(),
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const profile = await ensureProfile(user.id)
+  const profile = await getUserProfile(user.id)
   return NextResponse.json({ profile })
 }
 
@@ -46,7 +47,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  await ensureProfile(user.id)
+  await getUserProfile(user.id)
   const input = profileSchema.parse(await request.json())
   const profile = await prisma.profile.update({
     where: { user_id: user.id },
@@ -63,5 +64,6 @@ export async function PATCH(request: NextRequest) {
     },
   })
 
+  revalidateTag('profile-data')
   return NextResponse.json({ profile })
 }

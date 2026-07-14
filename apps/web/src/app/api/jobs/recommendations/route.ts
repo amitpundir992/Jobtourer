@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 
 import { getCurrentUser } from '@/lib/auth'
 import { recommendJobsForUser } from '@/lib/job-recommendations'
@@ -11,6 +12,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await recommendJobsForUser(user.id)
+    revalidateTag('job-recommendations')
+    revalidateTag('dashboard-data')
     return NextResponse.json(result)
   } catch (error) {
     console.error('Job recommendation error:', error)

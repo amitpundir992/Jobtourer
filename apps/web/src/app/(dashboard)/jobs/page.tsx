@@ -1,7 +1,14 @@
 import { JobsTable } from '@/components/jobs/jobs-table'
 import { JobsFilters } from '@/components/jobs/jobs-filters'
+import { parseJobQuery } from '@/lib/job-query'
 
-export default function JobsPage() {
+export default async function JobsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const query = parseJobQuery(await searchParams)
+
   return (
     <div className="space-y-6">
       <div>
@@ -11,8 +18,8 @@ export default function JobsPage() {
         </p>
       </div>
 
-      <JobsFilters />
-      <JobsTable />
+      <JobsFilters query={query} />
+      <JobsTable query={query} />
     </div>
   )
 }

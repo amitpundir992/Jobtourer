@@ -27,6 +27,19 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await prisma.profile.upsert({
+            where: { user_id: user.id },
+            update: {},
+            create: { user_id: user.id },
+          })
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
@@ -34,6 +47,10 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5,
+    },
   },
   socialProviders: {
     ...(googleClientId && googleClientSecret

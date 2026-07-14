@@ -5,6 +5,7 @@ import { Loader2, Save } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile'
+import type { Profile } from '@jobtourer/database'
 
 const currencies = [
   { code: 'USD', label: 'USD - US Dollar' },
@@ -53,8 +54,12 @@ const textareaClass =
 
 const labelClass = 'grid min-w-0 gap-2 text-sm font-medium'
 
-export function ProfileSettings() {
-  const { data: profile, isLoading } = useProfile()
+export function ProfileSettings({
+  initialProfile,
+}: {
+  initialProfile: Profile | null
+}) {
+  const { data: profile, isLoading } = useProfile(initialProfile ?? undefined)
   const updateProfile = useUpdateProfile()
   const [saved, setSaved] = useState(false)
 

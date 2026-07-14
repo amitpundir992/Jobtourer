@@ -1,17 +1,24 @@
-import { headers } from 'next/headers'
 import { prisma } from '@jobtourer/database'
+import { unstable_cache } from 'next/cache'
 
-import { auth } from '@/lib/auth'
+import { getServerSession } from '@/lib/server-session'
+
+const getRecentApplications = unstable_cache(
+  (userId: string) =>
+    prisma.application.findMany({
+      where: { user_id: userId },
+      include: { job: true },
+      orderBy: { updated_at: 'desc' },
+      take: 5,
+    }),
+  ['dashboard-recent-applications-v1'],
+  { revalidate: 30, tags: ['dashboard-data'] }
+)
 
 export async function RecentApplications() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getServerSession()
   const applications = session
-    ? await prisma.application.findMany({
-        where: { user_id: session.user.id },
-        include: { job: true },
-        orderBy: { updated_at: 'desc' },
-        take: 5,
-      })
+    ? await getRecentApplications(session.user.id)
     : []
 
   return (

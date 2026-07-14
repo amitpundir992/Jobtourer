@@ -1,19 +1,24 @@
-import { headers } from 'next/headers'
 import { formatDistanceToNow } from 'date-fns'
 import { prisma } from '@jobtourer/database'
+import { unstable_cache } from 'next/cache'
 
-import { auth } from '@/lib/auth'
+import { getServerSession } from '@/lib/server-session'
+
+const getApplications = unstable_cache(
+  (userId: string) =>
+    prisma.application.findMany({
+      where: { user_id: userId },
+      include: { job: true },
+      orderBy: { updated_at: 'desc' },
+      take: 20,
+    }),
+  ['applications-list-v1'],
+  { revalidate: 30, tags: ['application-data'] }
+)
 
 export async function ApplicationsList() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  const applications = session
-    ? await prisma.application.findMany({
-        where: { user_id: session.user.id },
-        include: { job: true },
-        orderBy: { updated_at: 'desc' },
-        take: 20,
-      })
-    : []
+  const session = await getServerSession()
+  const applications = session ? await getApplications(session.user.id) : []
 
   return (
     <section className="rounded-lg border bg-background">
