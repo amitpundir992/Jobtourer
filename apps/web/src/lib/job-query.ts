@@ -27,7 +27,7 @@ export function parseJobQuery(
   return jobQuerySchema.parse(singleValues)
 }
 
-const getUserRecommendations = unstable_cache(
+const getCachedUserRecommendations = unstable_cache(
   (userId: string) =>
     prisma.savedJob.findMany({
       where: { user_id: userId, job: { status: 'active' } },
@@ -52,53 +52,44 @@ const getUserRecommendations = unstable_cache(
   { revalidate: 60, tags: ['job-recommendations'] }
 )
 
-function dateValue(value: Date | string | null | undefined) {
-  return value ? new Date(value).getTime() : 0
-}
-
 async function queryJobRecommendations(userId: string, query: JobQuery) {
-  const search = query.search.toLowerCase()
-  const location = query.location.toLowerCase()
-  const recommendations = (await getUserRecommendations(userId))
+  const search = query.search.trim().toLowerCase()
+  const location = query.location.trim().toLowerCase()
+  const catalog = await getCachedUserRecommendations(userId)
+  const recommendations = catalog
     .filter((recommendation) => {
       const job = recommendation.job
-      const matchesSearch =
-        !search ||
-        job.title.toLowerCase().includes(search) ||
-        job.company.toLowerCase().includes(search) ||
-        job.location?.toLowerCase().includes(search)
-      const matchesLocation =
-        !location || job.location?.toLowerCase().includes(location)
-      const matchesSource =
-        query.source === 'all' || job.source === query.source
-      const matchesScore =
-        query.minMatch === 0 ||
-        (recommendation.match_score ?? 0) >= query.minMatch / 100
-
-      return matchesSearch && matchesLocation && matchesSource && matchesScore
+      return (
+        (!search ||
+          job.title.toLowerCase().includes(search) ||
+          job.company.toLowerCase().includes(search) ||
+          Boolean(job.location?.toLowerCase().includes(search))) &&
+        (!location ||
+          Boolean(job.location?.toLowerCase().includes(location))) &&
+        (query.source === 'all' || job.source === query.source) &&
+        (query.minMatch === 0 ||
+          (recommendation.match_score ?? 0) >= query.minMatch / 100)
+      )
     })
     .sort((left, right) => {
       if (query.sort === 'match') {
         return (right.match_score ?? 0) - (left.match_score ?? 0)
       }
-
-      return (
-        dateValue(right.job.posted_at ?? right.created_at) -
-        dateValue(left.job.posted_at ?? left.created_at)
-      )
+      const rightDate = new Date(
+        right.job.posted_at ?? right.created_at
+      ).getTime()
+      const leftDate = new Date(
+        left.job.posted_at ?? left.created_at
+      ).getTime()
+      return rightDate - leftDate
     })
-
   const total = recommendations.length
   const totalPages = Math.max(1, Math.ceil(total / query.pageSize))
   const page = Math.min(query.page, totalPages)
-  const pageStart = (page - 1) * query.pageSize
-  const paginatedRecommendations = recommendations.slice(
-    pageStart,
-    pageStart + query.pageSize
-  )
+  const start = (page - 1) * query.pageSize
 
   return {
-    recommendations: paginatedRecommendations,
+    recommendations: recommendations.slice(start, start + query.pageSize),
     pagination: {
       page,
       pageSize: query.pageSize,
@@ -118,4 +109,8 @@ const getCachedJobRecommendations = unstable_cache(
 
 export function getJobRecommendations(userId: string, query: JobQuery) {
   return getCachedJobRecommendations(userId, query)
+}
+
+export function getJobCatalog(userId: string) {
+  return getCachedUserRecommendations(userId)
 }

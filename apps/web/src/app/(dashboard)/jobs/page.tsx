@@ -1,6 +1,6 @@
-import { JobsTable } from '@/components/jobs/jobs-table'
-import { JobsFilters } from '@/components/jobs/jobs-filters'
-import { parseJobQuery } from '@/lib/job-query'
+import { JobsExplorer } from '@/components/jobs/jobs-explorer'
+import { getJobCatalog, parseJobQuery } from '@/lib/job-query'
+import { getServerSession } from '@/lib/server-session'
 
 export default async function JobsPage({
   searchParams,
@@ -8,6 +8,8 @@ export default async function JobsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const query = parseJobQuery(await searchParams)
+  const session = await getServerSession()
+  const catalog = session ? await getJobCatalog(session.user.id) : []
 
   return (
     <div className="space-y-6">
@@ -18,8 +20,7 @@ export default async function JobsPage({
         </p>
       </div>
 
-      <JobsFilters query={query} />
-      <JobsTable query={query} />
+      <JobsExplorer catalog={catalog} initialQuery={query} />
     </div>
   )
 }

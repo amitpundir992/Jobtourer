@@ -304,14 +304,28 @@ export async function recommendJobsForUser(userId: string) {
     (result) => (result.status === 'fulfilled' ? result.value : [])
   )
   const candidates = [...remoteOkJobs, ...greenhouseJobs, ...leverJobs]
-  const ranked = candidates
+  const scoredCandidates = candidates
     .map((job) => ({
       job,
       ...scoreCandidate(job, profile, parsedResume),
     }))
     .filter(({ isRelevant }) => isRelevant)
     .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_RECOMMENDATIONS)
+  const selectedIds = new Set<string>()
+  const sourceBalanced = ['remoteok', 'greenhouse', 'lever'].flatMap((source) =>
+    scoredCandidates
+      .filter(({ job }) => job.source === source)
+      .slice(0, 10)
+      .filter(({ job }) => {
+        if (selectedIds.has(job.externalId)) return false
+        selectedIds.add(job.externalId)
+        return true
+      })
+  )
+  const ranked = [
+    ...sourceBalanced,
+    ...scoredCandidates.filter(({ job }) => !selectedIds.has(job.externalId)),
+  ].slice(0, MAX_RECOMMENDATIONS)
 
   await Promise.all(
     ranked.map(async ({ job, score, missingSkills }) => {
@@ -362,12 +376,21 @@ export async function recommendJobsForUser(userId: string) {
     })
   )
 
+  const recommendationSources = ranked.reduce(
+    (counts, { job }) => {
+      counts[job.source] += 1
+      return counts
+    },
+    { remoteok: 0, greenhouse: 0, lever: 0 }
+  )
+
   return {
     sources: {
       remoteok: remoteOkJobs.length,
       greenhouse: greenhouseJobs.length,
       lever: leverJobs.length,
     },
+    recommendationSources,
     jobsScanned: candidates.length,
     recommendationsSaved: ranked.length,
   }

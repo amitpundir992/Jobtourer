@@ -1,27 +1,15 @@
-import Link from 'next/link'
+'use client'
+
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { getJobRecommendations, type JobQuery } from '@/lib/job-query'
-import { getServerSession } from '@/lib/server-session'
+import type { JobQuery } from '@/lib/job-query'
+import type { JobCatalogItem } from './jobs-explorer'
 
 const sourceDetails: Record<string, { label: string; url: string }> = {
   greenhouse: { label: 'Greenhouse', url: 'https://www.greenhouse.com' },
   lever: { label: 'Lever', url: 'https://www.lever.co' },
   remoteok: { label: 'Remote OK', url: 'https://remoteok.com' },
-}
-
-function pageHref(query: JobQuery, page: number) {
-  const params = new URLSearchParams()
-  if (query.search) params.set('search', query.search)
-  if (query.location) params.set('location', query.location)
-  if (query.source !== 'all') params.set('source', query.source)
-  if (query.minMatch > 0) params.set('minMatch', String(query.minMatch))
-  if (query.sort !== 'newest') params.set('sort', query.sort)
-  if (query.pageSize !== 15) params.set('pageSize', String(query.pageSize))
-  if (page > 1) params.set('page', String(page))
-  const search = params.toString()
-  return search ? `/jobs?${search}` : '/jobs'
 }
 
 function paginationItems(currentPage: number, totalPages: number) {
@@ -67,21 +55,24 @@ function paginationItems(currentPage: number, totalPages: number) {
   return items
 }
 
-export async function JobsTable({ query }: { query: JobQuery }) {
-  const session = await getServerSession()
-  const { recommendations, pagination } = session
-    ? await getJobRecommendations(session.user.id, query)
-    : {
-        recommendations: [],
-        pagination: {
-          page: 1,
-          pageSize: query.pageSize,
-          total: 0,
-          totalPages: 1,
-          hasPreviousPage: false,
-          hasNextPage: false,
-        },
-      }
+export function JobsTable({
+  query,
+  recommendations,
+  pagination,
+  onPageChange,
+}: {
+  query: JobQuery
+  recommendations: JobCatalogItem[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+    hasPreviousPage: boolean
+    hasNextPage: boolean
+  }
+  onPageChange: (page: number) => void
+}) {
   const firstResult =
     pagination.total === 0
       ? 0
@@ -167,11 +158,13 @@ export async function JobsTable({ query }: { query: JobQuery }) {
         </p>
         <div className="flex items-center gap-2">
           {pagination.hasPreviousPage ? (
-            <Button asChild size="sm" variant="outline">
-              <Link href={pageHref(query, pagination.page - 1)} prefetch>
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                Previous
-              </Link>
+            <Button
+              onClick={() => onPageChange(pagination.page - 1)}
+              size="sm"
+              variant="outline"
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Previous
             </Button>
           ) : (
             <Button disabled size="sm" variant="outline">
@@ -193,15 +186,13 @@ export async function JobsTable({ query }: { query: JobQuery }) {
                   </Button>
                 ) : (
                   <Button
-                    asChild
                     className="h-8 w-8 p-0"
                     key={item}
+                    onClick={() => onPageChange(item)}
                     size="sm"
                     variant="ghost"
                   >
-                    <Link href={pageHref(query, item)} prefetch>
-                      {item}
-                    </Link>
+                    {item}
                   </Button>
                 )
               ) : (
@@ -215,11 +206,13 @@ export async function JobsTable({ query }: { query: JobQuery }) {
             )}
           </div>
           {pagination.hasNextPage ? (
-            <Button asChild size="sm" variant="outline">
-              <Link href={pageHref(query, pagination.page + 1)} prefetch>
-                Next
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Link>
+            <Button
+              onClick={() => onPageChange(pagination.page + 1)}
+              size="sm"
+              variant="outline"
+            >
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           ) : (
             <Button disabled size="sm" variant="outline">

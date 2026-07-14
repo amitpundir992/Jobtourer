@@ -24,6 +24,7 @@ export function FindRecommendationsButton() {
         jobsScanned?: number
         recommendationsSaved?: number
         sources?: Record<string, number>
+        recommendationSources?: Record<string, number>
       }
 
       if (!response.ok) {
@@ -31,14 +32,15 @@ export function FindRecommendationsButton() {
       }
 
       const saved = result.recommendationsSaved ?? 0
-      const sources = Object.entries(result.sources ?? {})
-        .filter(([, count]) => count > 0)
-        .map(([source, count]) => `${source} ${count}`)
+      const savedSources = Object.entries(result.recommendationSources ?? {})
+        .map(([source, count]) =>
+          `${source === 'remoteok' ? 'Remote OK' : source[0].toUpperCase() + source.slice(1)} ${count}`
+        )
         .join(', ')
       setMessage(
         saved > 0
-          ? `${saved} matches from ${sources || `${result.jobsScanned ?? 0} jobs`}`
-          : `No relevant matches in ${result.jobsScanned ?? 0} jobs (${sources || 'sources unavailable'})`
+          ? `Saved ${saved}: ${savedSources || 'no source details'} (${result.jobsScanned ?? 0} scanned)`
+          : `No relevant matches in ${result.jobsScanned ?? 0} scanned jobs`
       )
       router.refresh()
     } catch (error) {

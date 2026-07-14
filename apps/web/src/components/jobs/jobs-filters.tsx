@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -15,10 +14,14 @@ type FilterOverrides = Partial<
   >
 >
 
-export function JobsFilters({ query }: { query: JobQuery }) {
-  const router = useRouter()
+export function JobsFilters({
+  query,
+  onQueryChange,
+}: {
+  query: JobQuery
+  onQueryChange: (query: JobQuery) => void
+}) {
   const textTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [, startTransition] = useTransition()
   const [showFilters, setShowFilters] = useState(
     Boolean(
       query.location ||
@@ -52,19 +55,7 @@ export function JobsFilters({ query }: { query: JobQuery }) {
       pageSize,
       ...overrides,
     }
-    const params = new URLSearchParams()
-    if (next.search.trim()) params.set('search', next.search.trim())
-    if (next.location.trim()) params.set('location', next.location.trim())
-    if (next.source !== 'all') params.set('source', next.source)
-    if (next.minMatch > 0) params.set('minMatch', String(next.minMatch))
-    if (next.sort !== 'newest') params.set('sort', next.sort)
-    if (next.pageSize !== 15) params.set('pageSize', String(next.pageSize))
-
-    startTransition(() => {
-      router.replace(params.size ? `/jobs?${params}` : '/jobs', {
-        scroll: false,
-      })
-    })
+    onQueryChange({ ...query, ...next, page: 1 })
   }
 
   function scheduleTextFilter(overrides: FilterOverrides) {
@@ -85,7 +76,15 @@ export function JobsFilters({ query }: { query: JobQuery }) {
     setMinMatch(0)
     setSort('newest')
     setPageSize(15)
-    startTransition(() => router.replace('/jobs', { scroll: false }))
+    onQueryChange({
+      search: '',
+      location: '',
+      source: 'all',
+      minMatch: 0,
+      sort: 'newest',
+      page: 1,
+      pageSize: 15,
+    })
   }
 
   return (
