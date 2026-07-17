@@ -5,7 +5,16 @@ import { z } from 'zod'
 export const jobQuerySchema = z.object({
   search: z.string().trim().max(100).catch(''),
   location: z.string().trim().max(100).catch(''),
-  source: z.enum(['all', 'greenhouse', 'lever', 'remoteok']).catch('all'),
+  source: z
+    .enum([
+      'all',
+      'greenhouse',
+      'lever',
+      'remoteok',
+      'ashby',
+      'smartrecruiters',
+    ])
+    .catch('all'),
   minMatch: z.coerce.number().int().min(0).max(100).catch(0),
   sort: z.enum(['newest', 'match']).catch('newest'),
   page: z.coerce.number().int().min(1).catch(1),

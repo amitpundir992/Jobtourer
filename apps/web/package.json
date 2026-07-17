@@ -6,6 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "trigger:dev": "trigger dev start --env-file ../../.env",
+    "trigger:deploy": "trigger deploy --env-file ../../.env",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
     "clean": "node ../../scripts/remove.mjs .next"
@@ -16,6 +18,7 @@
     "@jobtourer/database": "workspace:*",
     "@jobtourer/types": "workspace:*",
     "@jobtourer/ui": "workspace:*",
+    "@prisma/client": "5.22.0",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
     "@radix-ui/react-label": "^2.0.2",
@@ -24,6 +27,7 @@
     "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-toast": "^1.1.5",
     "@tanstack/react-query": "^5.28.0",
+    "@trigger.dev/sdk": "^4.5.4",
     "axios": "^1.6.8",
     "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.0",
@@ -45,6 +49,8 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@next/env": "15.5.20",
+    "@prisma/nextjs-monorepo-workaround-plugin": "^7.8.0",
     "@types/node": "^20.12.12",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
@@ -53,6 +59,7 @@
     "eslint-config-next": "^15.0.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
+    "trigger.dev": "^4.5.4",
     "typescript": "^5.4.5"
   }
 }

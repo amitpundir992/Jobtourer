@@ -6,9 +6,19 @@ import { BillingSettings } from '@/components/settings/billing-settings'
 import { getUserProfile } from '@/lib/profile-data'
 import { getServerSession } from '@/lib/server-session'
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
   const session = await getServerSession()
+  const { tab } = await searchParams
   const profile = session ? await getUserProfile(session.user.id) : null
+  const defaultTab = ['profile', 'preferences', 'integrations', 'billing'].includes(
+    tab ?? ''
+  )
+    ? tab
+    : 'profile'
 
   return (
     <div className="space-y-6">
@@ -19,7 +29,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs defaultValue={defaultTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>

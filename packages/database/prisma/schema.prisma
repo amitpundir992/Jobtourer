@@ -21,13 +21,17 @@ model User {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  sessions      Session[]
-  accounts      Account[]
-  profile       Profile?
-  resumes       Resume[]
-  saved_jobs    SavedJob[]
-  applications  Application[]
-  subscriptions Subscription[]
+  sessions              Session[]
+  accounts              Account[]
+  profile               Profile?
+  resumes               Resume[]
+  saved_jobs            SavedJob[]
+  applications          Application[]
+  email_drafts          EmailDraft[]
+  automation_preference AutomationPreference?
+  automation_runs       AutomationRun[]
+  gmail_connection      GmailConnection?
+  subscriptions         Subscription[]
 
   @@index([email])
   @@map("users")
@@ -137,6 +141,8 @@ model Job {
   salary_max       Int?
   salary_currency  String?   @default("USD")
   url              String
+  fingerprint      String?
+  recipient_email  String?
   tags             String[]
   status           String    @default("active") // active, closed, filled
   posted_at        DateTime?
@@ -146,8 +152,10 @@ model Job {
 
   saved_jobs   SavedJob[]
   applications Application[]
+  email_drafts EmailDraft[]
 
   @@index([source, external_id])
+  @@index([fingerprint])
   @@index([company])
   @@index([created_at])
   @@map("jobs")
@@ -194,21 +202,89 @@ model Application {
 }
 
 model EmailDraft {
-  id             String    @id @default(uuid())
-  user_id        String
-  job_id         String
-  subject        String
-  body           String    @db.Text
-  gmail_draft_id String?
-  status         String    @default("draft") // draft, sent, failed
-  sent_at        DateTime?
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  user_id         String
+  job_id          String
+  subject         String
+  body            String    @db.Text
+  gmail_draft_id  String?
+  recipient_email String?
+  resume_id       String?
+  gmail_error     String?   @db.Text
+  status          String    @default("draft") // draft, sent, failed
+  sent_at         DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
 
   applications Application[]
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job          Job           @relation(fields: [job_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("email_drafts")
+}
+
+model AutomationPreference {
+  id                  String    @id @default(uuid())
+  user_id             String    @unique
+  enabled             Boolean   @default(false)
+  minimum_match       Float     @default(0.7)
+  create_email_drafts Boolean   @default(true)
+  create_gmail_drafts Boolean   @default(false)
+  schedule_type       String    @default("daily") // daily, weekly, monthly
+  week_days           Int[]     @default([])
+  month_day           Int       @default(1)
+  schedule_hour       Int       @default(8)
+  timezone            String    @default("UTC")
+  trigger_schedule_id String?
+  next_run_at         DateTime?
+  last_run_at         DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([enabled])
+  @@map("automation_preferences")
+}
+
+model AutomationRun {
+  id                   String    @id @default(uuid())
+  user_id              String
+  trigger              String    @default("scheduled") // scheduled, manual
+  status               String    @default("queued") // queued, processing, completed, failed
+  jobs_scanned         Int       @default(0)
+  matches_saved        Int       @default(0)
+  drafts_created       Int       @default(0)
+  gmail_drafts_created Int       @default(0)
+  source_counts        Json?
+  error                String?   @db.Text
+  started_at           DateTime?
+  completed_at         DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at])
+  @@index([status])
+  @@map("automation_runs")
+}
+
+model GmailConnection {
+  id                      String    @id @default(uuid())
+  user_id                 String    @unique
+  email                   String
+  encrypted_access_token  String?   @db.Text
+  encrypted_refresh_token String?   @db.Text
+  access_token_expires_at DateTime?
+  scope                   String?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("gmail_connections")
 }
 
 model Subscription {

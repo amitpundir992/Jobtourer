@@ -13,6 +13,8 @@
   "scripts": {
     "dev": "tsx scripts/dev.ts",
     "dev:web": "pnpm --filter @jobtourer/web dev",
+    "trigger:dev": "pnpm --filter @jobtourer/web trigger:dev",
+    "trigger:deploy": "pnpm --filter @jobtourer/web trigger:deploy",
     "dev:workers": "pnpm --parallel --filter \"./workers/**\" dev",
     "build": "pnpm --filter @jobtourer/web build",
     "build:workers": "pnpm --parallel --filter \"./workers/**\" build",

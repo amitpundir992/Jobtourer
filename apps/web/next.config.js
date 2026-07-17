@@ -1,12 +1,15 @@
 const path = require('path')
 const { loadEnvConfig } = require('@next/env')
+const { PrismaPlugin } = require('@prisma/nextjs-monorepo-workaround-plugin')
 
 loadEnvConfig(path.resolve(__dirname, '../..'))
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  turbopack: {
+    root: path.resolve(__dirname, '../..'),
+  },
   transpilePackages: [
     '@jobtourer/ui',
     '@jobtourer/database',
@@ -34,6 +37,13 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.plugins.push(new PrismaPlugin())
+    }
+
+    return config
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,

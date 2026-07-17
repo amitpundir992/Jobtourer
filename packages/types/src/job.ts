@@ -25,6 +25,8 @@ export type JobSource =
   | 'greenhouse'
   | 'lever'
   | 'remoteok'
+  | 'ashby'
+  | 'smartrecruiters'
   | 'hackernews'
   | 'reddit'
   | 'company_website'

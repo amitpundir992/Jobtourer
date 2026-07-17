@@ -10,6 +10,11 @@ const sourceDetails: Record<string, { label: string; url: string }> = {
   greenhouse: { label: 'Greenhouse', url: 'https://www.greenhouse.com' },
   lever: { label: 'Lever', url: 'https://www.lever.co' },
   remoteok: { label: 'Remote OK', url: 'https://remoteok.com' },
+  ashby: { label: 'Ashby', url: 'https://www.ashbyhq.com' },
+  smartrecruiters: {
+    label: 'SmartRecruiters',
+    url: 'https://www.smartrecruiters.com',
+  },
 }
 
 function paginationItems(currentPage: number, totalPages: number) {

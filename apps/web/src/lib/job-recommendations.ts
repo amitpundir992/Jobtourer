@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { prisma } from '@jobtourer/database'
 import type { ParsedResumeData } from '@jobtourer/types'
 
@@ -5,6 +6,8 @@ const MAX_SOURCE_JOBS = 500
 const MAX_RECOMMENDATIONS = 100
 const DEFAULT_GREENHOUSE_BOARDS = ['cloudflare', 'datadog', 'mongodb']
 const DEFAULT_LEVER_SITES = ['palantir', 'spotify', 'highspot', 'aircall']
+const DEFAULT_ASHBY_BOARDS = ['openai', 'anthropic', 'linear']
+const DEFAULT_SMARTRECRUITERS_COMPANIES = ['BoschGroup', 'Visa']
 
 const COMPANY_NAMES: Record<string, string> = {
   aircall: 'Aircall',
@@ -53,9 +56,32 @@ interface LeverJob {
   }
 }
 
+interface AshbyJob {
+  id?: string
+  title: string
+  location?: string
+  descriptionPlain?: string
+  descriptionHtml?: string
+  jobUrl: string
+  applyUrl?: string
+  department?: string
+  team?: string
+  employmentType?: string
+  publishedAt?: string
+}
+
+interface SmartRecruitersJob {
+  id: string
+  name: string
+  releasedDate?: string
+  location?: { city?: string; region?: string; country?: string }
+  department?: { label?: string }
+  typeOfEmployment?: { label?: string }
+}
+
 interface CandidateJob {
   externalId: string
-  source: 'remoteok' | 'greenhouse' | 'lever'
+  source: 'remoteok' | 'greenhouse' | 'lever' | 'ashby' | 'smartrecruiters'
   title: string
   company: string
   description: string
@@ -65,13 +91,16 @@ interface CandidateJob {
   salaryMin?: number
   salaryMax?: number
   postedAt?: Date
+  fingerprint?: string
+  recipientEmail?: string
 }
 
-function configuredSources(name: string, defaults: string[]) {
+function configuredSources(name: string, defaults: string[], lowercase = true) {
   const configured = process.env[name]
     ?.split(',')
-    .map((value) => value.trim().toLowerCase())
+    .map((value) => value.trim())
     .filter(Boolean)
+    .map((value) => (lowercase ? value.toLowerCase() : value))
 
   return configured?.length ? configured : defaults
 }
@@ -90,6 +119,24 @@ function cleanText(value: string) {
     .replace(/&[a-z]+;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function jobFingerprint(job: CandidateJob) {
+  return createHash('sha256')
+    .update(
+      [job.company, job.title, job.location, job.url]
+        .map((value) => value.toLowerCase().replace(/[^a-z0-9]/g, ''))
+        .join('|')
+    )
+    .digest('hex')
+}
+
+function hiringEmail(description: string) {
+  const emails =
+    description.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? []
+  return emails.find((email) =>
+    /^(jobs?|careers?|recruit(ing|er)?|talent|hiring|people)@/i.test(email)
+  )
 }
 
 function normalize(value: string) {
@@ -121,7 +168,9 @@ function scoreCandidate(
   const roleTerms = (profile.preferred_role ?? '')
     .split(/\s+/)
     .map(normalize)
-    .filter((term) => term.length > 2 && !['engineer', 'developer'].includes(term))
+    .filter(
+      (term) => term.length > 2 && !['engineer', 'developer'].includes(term)
+    )
   const normalizedTitle = normalize(job.title)
   const roleScore = roleTerms.length
     ? roleTerms.filter((term) => normalizedTitle.includes(term)).length /
@@ -153,7 +202,11 @@ function scoreCandidate(
 
   const score = Math.min(
     1,
-    0.15 + skillScore * 0.45 + roleScore * 0.25 + locationScore * 0.1 + salaryScore * 0.05
+    0.15 +
+      skillScore * 0.45 +
+      roleScore * 0.25 +
+      locationScore * 0.1 +
+      salaryScore * 0.05
   )
   const normalizedSkills = new Set(skills.map(normalize))
   const missingSkills = job.tags
@@ -197,9 +250,11 @@ async function fetchRemoteOkJobs(): Promise<CandidateJob[]> {
       tags: Array.isArray(job.tags) ? job.tags : [],
       salaryMin: job.salary_min || undefined,
       salaryMax: job.salary_max || undefined,
-      postedAt: job.date && !Number.isNaN(Date.parse(job.date))
-        ? new Date(job.date)
-        : undefined,
+      postedAt:
+        job.date && !Number.isNaN(Date.parse(job.date))
+          ? new Date(job.date)
+          : undefined,
+      recipientEmail: hiringEmail(cleanText(job.description!)),
     }))
 }
 
@@ -228,6 +283,7 @@ async function fetchGreenhouseJobs(boards: string[]): Promise<CandidateJob[]> {
           job.updated_at && !Number.isNaN(Date.parse(job.updated_at))
             ? new Date(job.updated_at)
             : undefined,
+        recipientEmail: hiringEmail(cleanText(job.content ?? '')),
       }))
     })
   )
@@ -261,6 +317,11 @@ async function fetchLeverJobs(sites: string[]): Promise<CandidateJob[]> {
           (tag): tag is string => Boolean(tag)
         ),
         postedAt: job.createdAt ? new Date(job.createdAt) : undefined,
+        recipientEmail: hiringEmail(
+          cleanText(
+            `${job.descriptionPlain ?? ''} ${job.additionalPlain ?? ''}`
+          )
+        ),
       }))
     })
   )
@@ -270,7 +331,100 @@ async function fetchLeverJobs(sites: string[]): Promise<CandidateJob[]> {
   )
 }
 
-export async function recommendJobsForUser(userId: string) {
+async function fetchAshbyJobs(boards: string[]): Promise<CandidateJob[]> {
+  const results = await Promise.allSettled(
+    boards.map(async (board) => {
+      const response = await fetch(
+        `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(board)}?includeCompensation=true`,
+        { signal: AbortSignal.timeout(15_000), cache: 'no-store' }
+      )
+      if (!response.ok) return []
+
+      const data = (await response.json()) as { jobs?: AshbyJob[] }
+      return (data.jobs ?? []).slice(0, MAX_SOURCE_JOBS).map((job) => {
+        const description = cleanText(
+          job.descriptionPlain || job.descriptionHtml || ''
+        )
+        return {
+          externalId: `ashby-${board}-${job.id ?? createHash('sha1').update(job.jobUrl).digest('hex')}`,
+          source: 'ashby' as const,
+          title: job.title,
+          company: COMPANY_NAMES[board] ?? board,
+          description,
+          location: job.location || 'See job posting',
+          url: job.applyUrl || job.jobUrl,
+          tags: [job.department, job.team, job.employmentType].filter(
+            (tag): tag is string => Boolean(tag)
+          ),
+          postedAt:
+            job.publishedAt && !Number.isNaN(Date.parse(job.publishedAt))
+              ? new Date(job.publishedAt)
+              : undefined,
+          recipientEmail: hiringEmail(description),
+        }
+      })
+    })
+  )
+
+  return results.flatMap((result) =>
+    result.status === 'fulfilled' ? result.value : []
+  )
+}
+
+async function fetchSmartRecruitersJobs(
+  companies: string[]
+): Promise<CandidateJob[]> {
+  const results = await Promise.allSettled(
+    companies.map(async (company) => {
+      const response = await fetch(
+        `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(company)}/postings?limit=100`,
+        { signal: AbortSignal.timeout(15_000), cache: 'no-store' }
+      )
+      if (!response.ok) return []
+
+      const data = (await response.json()) as { content?: SmartRecruitersJob[] }
+      return (data.content ?? []).slice(0, MAX_SOURCE_JOBS).map((job) => ({
+        externalId: `smartrecruiters-${company}-${job.id}`,
+        source: 'smartrecruiters' as const,
+        title: job.name,
+        company,
+        description: [
+          job.name,
+          job.department?.label,
+          job.typeOfEmployment?.label,
+        ]
+          .filter(Boolean)
+          .join(' '),
+        location:
+          [job.location?.city, job.location?.region, job.location?.country]
+            .filter(Boolean)
+            .join(', ') || 'See job posting',
+        url: `https://jobs.smartrecruiters.com/${company}/${job.id}`,
+        tags: [job.department?.label, job.typeOfEmployment?.label].filter(
+          (tag): tag is string => Boolean(tag)
+        ),
+        postedAt:
+          job.releasedDate && !Number.isNaN(Date.parse(job.releasedDate))
+            ? new Date(job.releasedDate)
+            : undefined,
+      }))
+    })
+  )
+
+  return results.flatMap((result) =>
+    result.status === 'fulfilled' ? result.value : []
+  )
+}
+
+interface RecommendationOptions {
+  minimumMatch?: number
+  maxRecommendations?: number
+}
+
+export async function recommendJobsForUser(
+  userId: string,
+  options: RecommendationOptions = {}
+) {
   const [profile, resume] = await Promise.all([
     prisma.profile.findUnique({ where: { user_id: userId } }),
     prisma.resume.findFirst({
@@ -295,24 +449,58 @@ export async function recommendJobsForUser(userId: string) {
     ...configuredSources('LEVER_SITE_NAMES', DEFAULT_LEVER_SITES),
     ...preferredCompanySlugs,
   ])
+  const ashbyBoards = unique([
+    ...configuredSources('ASHBY_BOARD_NAMES', DEFAULT_ASHBY_BOARDS),
+    ...preferredCompanySlugs,
+  ])
+  const smartRecruitersCompanies = unique(
+    configuredSources(
+      'SMARTRECRUITERS_COMPANIES',
+      DEFAULT_SMARTRECRUITERS_COMPANIES,
+      false
+    )
+  )
   const sourceResults = await Promise.allSettled([
     fetchRemoteOkJobs(),
     fetchGreenhouseJobs(greenhouseBoards),
     fetchLeverJobs(leverSites),
+    fetchAshbyJobs(ashbyBoards),
+    fetchSmartRecruitersJobs(smartRecruitersCompanies),
   ])
-  const [remoteOkJobs, greenhouseJobs, leverJobs] = sourceResults.map(
-    (result) => (result.status === 'fulfilled' ? result.value : [])
+  const [
+    remoteOkJobs,
+    greenhouseJobs,
+    leverJobs,
+    ashbyJobs,
+    smartRecruitersJobs,
+  ] = sourceResults.map((result) =>
+    result.status === 'fulfilled' ? result.value : []
   )
-  const candidates = [...remoteOkJobs, ...greenhouseJobs, ...leverJobs]
+  const candidates = [
+    ...remoteOkJobs,
+    ...greenhouseJobs,
+    ...leverJobs,
+    ...ashbyJobs,
+    ...smartRecruitersJobs,
+  ]
   const scoredCandidates = candidates
     .map((job) => ({
       job,
       ...scoreCandidate(job, profile, parsedResume),
     }))
-    .filter(({ isRelevant }) => isRelevant)
+    .filter(
+      ({ isRelevant, score }) =>
+        isRelevant && score >= (options.minimumMatch ?? 0)
+    )
     .sort((a, b) => b.score - a.score)
   const selectedIds = new Set<string>()
-  const sourceBalanced = ['remoteok', 'greenhouse', 'lever'].flatMap((source) =>
+  const sourceBalanced = [
+    'remoteok',
+    'greenhouse',
+    'lever',
+    'ashby',
+    'smartrecruiters',
+  ].flatMap((source) =>
     scoredCandidates
       .filter(({ job }) => job.source === source)
       .slice(0, 10)
@@ -325,63 +513,84 @@ export async function recommendJobsForUser(userId: string) {
   const ranked = [
     ...sourceBalanced,
     ...scoredCandidates.filter(({ job }) => !selectedIds.has(job.externalId)),
-  ].slice(0, MAX_RECOMMENDATIONS)
+  ].slice(0, options.maxRecommendations ?? MAX_RECOMMENDATIONS)
 
-  await Promise.all(
-    ranked.map(async ({ job, score, missingSkills }) => {
-      const savedJob = await prisma.job.upsert({
-        where: { external_id: job.externalId },
-        update: {
-          title: job.title,
-          company: job.company,
-          description: job.description,
-          location: job.location,
-          url: job.url,
-          tags: job.tags,
-          salary_min: job.salaryMin,
-          salary_max: job.salaryMax,
-          posted_at: job.postedAt,
-          status: 'active',
-        },
-        create: {
-          external_id: job.externalId,
-          source: job.source,
-          title: job.title,
-          company: job.company,
-          description: job.description,
-          location: job.location,
-          job_type: 'remote',
-          salary_min: job.salaryMin,
-          salary_max: job.salaryMax,
-          salary_currency: 'USD',
-          url: job.url,
-          tags: job.tags,
-          posted_at: job.postedAt,
-          status: 'active',
-        },
-      })
+  const savedRecommendations: Array<{
+    jobId: string
+    score: number
+    recipientEmail: string | null
+  }> = []
 
-      await prisma.savedJob.upsert({
-        where: {
-          user_id_job_id: { user_id: userId, job_id: savedJob.id },
-        },
-        update: { match_score: score, missing_skills: missingSkills },
-        create: {
-          user_id: userId,
-          job_id: savedJob.id,
-          match_score: score,
-          missing_skills: missingSkills,
-        },
+  for (let index = 0; index < ranked.length; index += 5) {
+    const batch = ranked.slice(index, index + 5)
+    const savedBatch = await Promise.all(
+      batch.map(async ({ job, score, missingSkills }) => {
+        const fingerprint = job.fingerprint ?? jobFingerprint(job)
+        const savedJob = await prisma.job.upsert({
+          where: { external_id: job.externalId },
+          update: {
+            title: job.title,
+            company: job.company,
+            description: job.description,
+            location: job.location,
+            url: job.url,
+            fingerprint,
+            recipient_email: job.recipientEmail,
+            tags: job.tags,
+            salary_min: job.salaryMin,
+            salary_max: job.salaryMax,
+            posted_at: job.postedAt,
+            status: 'active',
+          },
+          create: {
+            external_id: job.externalId,
+            source: job.source,
+            title: job.title,
+            company: job.company,
+            description: job.description,
+            location: job.location,
+            job_type: 'remote',
+            salary_min: job.salaryMin,
+            salary_max: job.salaryMax,
+            salary_currency: 'USD',
+            url: job.url,
+            fingerprint,
+            recipient_email: job.recipientEmail,
+            tags: job.tags,
+            posted_at: job.postedAt,
+            status: 'active',
+          },
+        })
+
+        await prisma.savedJob.upsert({
+          where: {
+            user_id_job_id: { user_id: userId, job_id: savedJob.id },
+          },
+          update: { match_score: score, missing_skills: missingSkills },
+          create: {
+            user_id: userId,
+            job_id: savedJob.id,
+            match_score: score,
+            missing_skills: missingSkills,
+          },
+        })
+
+        return {
+          jobId: savedJob.id,
+          score,
+          recipientEmail: job.recipientEmail ?? null,
+        }
       })
-    })
-  )
+    )
+    savedRecommendations.push(...savedBatch)
+  }
 
   const recommendationSources = ranked.reduce(
     (counts, { job }) => {
       counts[job.source] += 1
       return counts
     },
-    { remoteok: 0, greenhouse: 0, lever: 0 }
+    { remoteok: 0, greenhouse: 0, lever: 0, ashby: 0, smartrecruiters: 0 }
   )
 
   return {
@@ -389,9 +598,12 @@ export async function recommendJobsForUser(userId: string) {
       remoteok: remoteOkJobs.length,
       greenhouse: greenhouseJobs.length,
       lever: leverJobs.length,
+      ashby: ashbyJobs.length,
+      smartrecruiters: smartRecruitersJobs.length,
     },
     recommendationSources,
     jobsScanned: candidates.length,
     recommendationsSaved: ranked.length,
+    savedRecommendations,
   }
 }

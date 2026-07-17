@@ -36,6 +36,8 @@ export const JOB_SOURCES = [
   'greenhouse',
   'lever',
   'remoteok',
+  'ashby',
+  'smartrecruiters',
   'hackernews',
   'reddit',
   'company_website',

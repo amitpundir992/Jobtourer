@@ -1,86 +1,122 @@
-import { prisma } from '@jobtourer/database'
-import { logger } from '../lib/logger'
-import { generateText } from '../lib/ai'
+import type { ParsedResumeData } from '@jobtourer/types'
+import type { CandidateJob } from './job-search.service'
 
-export async function calculateMatchScore(
-  userId: string,
-  jobId: string
-): Promise<number> {
-  try {
-    // Get user's default resume
-    const resume = await prisma.resume.findFirst({
-      where: { user_id: userId, is_default: true },
-    })
+export interface MatchingProfile {
+  preferred_role: string | null
+  skills: string[]
+  experience: string | null
+  preferred_locations: string[]
+  work_preference: string | null
+  salary_min: number | null
+}
 
-    if (!resume || !resume.parsed_data) {
-      logger.warn(`No resume found for user ${userId}`)
-      return 0
-    }
+function normalize(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9+#.]/g, '')
+}
 
-    // Get job details
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
-    })
+function terms(value: string) {
+  return value
+    .split(/[,/\s-]+/)
+    .map(normalize)
+    .filter((term) => term.length > 2)
+}
 
-    if (!job) {
-      logger.warn(`Job ${jobId} not found`)
-      return 0
-    }
+function remoteJob(job: CandidateJob) {
+  return /remote|worldwide|anywhere|work from home/i.test(
+    `${job.location} ${job.tags.join(' ')} ${job.jobType ?? ''}`
+  )
+}
 
-    // Use AI to calculate match score
-    const resumeData = resume.parsed_data as any
-    const prompt = `
-You are a job matching expert. Calculate how well this resume matches the job posting.
+function knownLocation(location: string) {
+  return !/see job posting|not specified|multiple locations/i.test(location)
+}
 
-Resume Skills: ${resumeData.skills?.join(', ') || 'N/A'}
-Resume Experience: ${JSON.stringify(resumeData.experience) || 'N/A'}
+export function scoreCandidate(
+  job: CandidateJob,
+  profile: MatchingProfile,
+  resume: ParsedResumeData
+) {
+  const skills = Array.from(
+    new Set([...(profile.skills ?? []), ...(resume.skills ?? [])])
+  ).filter(Boolean)
+  const searchable = normalize(
+    `${job.title} ${job.description} ${job.tags.join(' ')}`
+  )
+  const matchingSkills = skills.filter((skill) =>
+    searchable.includes(normalize(skill))
+  )
+  const expectedSkillMatches = Math.max(1, Math.min(5, skills.length))
+  const skillScore = Math.min(1, matchingSkills.length / expectedSkillMatches)
 
-Job Title: ${job.title}
-Job Company: ${job.company}
-Job Description: ${job.description}
-Required Experience Level: ${job.experience_level || 'Not specified'}
+  const ignoredRoleTerms = new Set([
+    'engineer',
+    'engineering',
+    'developer',
+    'software',
+    'role',
+  ])
+  const roleTerms = terms(profile.preferred_role ?? '').filter(
+    (term) => !ignoredRoleTerms.has(term)
+  )
+  const normalizedTitle = normalize(job.title)
+  const roleScore = roleTerms.length
+    ? roleTerms.filter((term) => normalizedTitle.includes(term)).length /
+      roleTerms.length
+    : 0.5
 
-Return ONLY a number between 0 and 1 representing the match score.
-0 = no match, 1 = perfect match.
-Consider:
-- Skill overlap
-- Experience level match
-- Industry relevance
-- Job requirements alignment
+  const wantsRemote =
+    profile.work_preference?.toLowerCase() === 'remote' ||
+    profile.preferred_locations.some((location) => /remote/i.test(location))
+  const isRemote = remoteJob(job)
+  if (wantsRemote && knownLocation(job.location) && !isRemote) {
+    return { eligible: false, score: 0, matchingSkills, missingSkills: [] }
+  }
 
-Response format: Just the number (e.g., "0.85")
-`
+  const preferredLocations = profile.preferred_locations.filter(
+    (location) => !/remote/i.test(location)
+  )
+  const locationMatch =
+    isRemote ||
+    preferredLocations.length === 0 ||
+    preferredLocations.some((location) =>
+      job.location.toLowerCase().includes(location.toLowerCase())
+    )
+  const locationScore = locationMatch ? 1 : knownLocation(job.location) ? 0 : 0.5
 
-    const response = await generateText(prompt)
-    const score = parseFloat(response.trim())
+  if (
+    profile.salary_min &&
+    job.salaryMax &&
+    job.salaryMax < profile.salary_min
+  ) {
+    return { eligible: false, score: 0, matchingSkills, missingSkills: [] }
+  }
 
-    if (isNaN(score) || score < 0 || score > 1) {
-      logger.warn(`Invalid match score: ${response}`)
-      return 0.5 // Default to middle score if parsing fails
-    }
+  const profileExperience = normalize(profile.experience ?? '')
+  const seniorJob = /\b(senior|staff|principal|lead|manager|director)\b/i.test(
+    job.title
+  )
+  const seniorProfile = /senior|staff|principal|lead|manager|[5-9]\+?years/.test(
+    profileExperience
+  )
+  const experienceScore = seniorJob ? (seniorProfile ? 1 : 0.25) : 1
 
-    // Save the match score
-    await prisma.savedJob.upsert({
-      where: {
-        user_id_job_id: {
-          user_id: userId,
-          job_id: jobId,
-        },
-      },
-      update: {
-        match_score: score,
-      },
-      create: {
-        user_id: userId,
-        job_id: jobId,
-        match_score: score,
-        missing_skills: [],
-      },
-    })
+  const score = Math.min(
+    1,
+    roleScore * 0.35 +
+      skillScore * 0.4 +
+      locationScore * 0.15 +
+      experienceScore * 0.1
+  )
+  const normalizedSkills = new Set(skills.map(normalize))
+  const missingSkills = job.tags
+    .filter((tag) => !normalizedSkills.has(normalize(tag)))
+    .filter((tag) => tag.length > 1)
+    .slice(0, 8)
 
-    return score
-  } catch (error) {
-    logger.error(`Error calculating match score:`, error)
-    return 0
+  return {
+    eligible: roleScore > 0 || matchingSkills.length > 0,
+    score,
+    matchingSkills,
+    missingSkills,
   }
 }

@@ -1,7 +1,12 @@
 import OpenAI from 'openai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import Anthropic from '@anthropic-ai/sdk'
+import { config } from 'dotenv'
+import path from 'node:path'
 import { logger } from './logger'
+
+config({ path: path.resolve(process.cwd(), '.env') })
+config({ path: path.resolve(process.cwd(), '../../.env') })
 
 const AI_PROVIDER = process.env.AI_PROVIDER || 'openai'
 

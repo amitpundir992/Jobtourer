@@ -15,15 +15,9 @@ const services = [
     color: '\x1b[36m',
   },
   {
-    name: 'Search Worker',
+    name: 'Trigger',
     command: 'pnpm',
-    args: ['--filter', 'search-worker', 'dev'],
-    color: '\x1b[33m',
-  },
-  {
-    name: 'Email Worker',
-    command: 'pnpm',
-    args: ['--filter', 'email-worker', 'dev'],
+    args: ['--filter', '@jobtourer/web', 'trigger:dev'],
     color: '\x1b[35m',
   },
 ]
