@@ -169,7 +169,11 @@ function linesToEntries(lines: string[] | undefined) {
 
 export async function extractResumeText(buffer: Buffer, fileType: string) {
   if (fileType === 'application/pdf') {
-    const { PDFParse } = await import('pdf-parse')
+    const [{ PDFParse }, { getData }] = await Promise.all([
+      import('pdf-parse'),
+      import('pdf-parse/worker'),
+    ])
+    PDFParse.setWorker(getData())
     const parser = new PDFParse({ data: new Uint8Array(buffer) })
 
     try {

@@ -16,6 +16,7 @@ const nextConfig = {
     '@jobtourer/types',
     '@jobtourer/config',
   ],
+  serverExternalPackages: ['pdf-parse', '@napi-rs/canvas'],
   images: {
     domains: [
       'localhost',

@@ -66,7 +66,7 @@ export function ResumesList({ initialResumes }: { initialResumes: Resume[] }) {
                   <h2 className="font-semibold">{resume.title}</h2>
                   <a
                     className="block truncate text-sm text-muted-foreground hover:text-foreground"
-                    href={resume.file_url}
+                    href={`/api/resumes/${resume.id}/file`}
                     target="_blank"
                     rel="noreferrer"
                   >

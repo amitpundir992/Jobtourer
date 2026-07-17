@@ -5,6 +5,7 @@ import { prisma } from '@jobtourer/database'
 import type { ParsedResumeData } from '@jobtourer/types'
 
 import { recommendJobsForUser } from '@/lib/job-recommendations'
+import { downloadResumeObject } from '@/lib/supabase-resume-storage'
 
 const MAX_DRAFTS_PER_RUN = 10
 
@@ -156,6 +157,9 @@ function localResumePath(fileUrl: string) {
 }
 
 async function resumeFile(fileUrl: string) {
+  const storedFile = await downloadResumeObject(fileUrl)
+  if (storedFile) return storedFile
+
   const localPath = localResumePath(fileUrl)
   if (localPath) return readFileSync(localPath)
 

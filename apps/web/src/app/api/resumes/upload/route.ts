@@ -1,12 +1,15 @@
-import { mkdir, unlink, writeFile } from 'node:fs/promises'
-import path from 'node:path'
-
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { Prisma, prisma } from '@jobtourer/database'
 
 import { getCurrentUser } from '@/lib/auth'
 import { parseResume } from '@/lib/resume-parser'
+import {
+  deleteResumeObject,
+  uploadResumeObject,
+} from '@/lib/supabase-resume-storage'
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 const allowedTypes = new Set([
   'application/pdf',
@@ -42,36 +45,24 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const publicDir = path.join(process.cwd(), 'public', 'resumes')
-  await mkdir(publicDir, { recursive: true })
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json(
+      { error: 'Resume must be 10 MB or smaller' },
+      { status: 400 }
+    )
+  }
 
   const extension = extensionByType[file.type]
   const safeUserId = user.id.replace(/[^a-zA-Z0-9_-]/g, '')
-  const fileName = `${safeUserId}-resume${extension}`
-  const filePath = path.join(publicDir, fileName)
-  const fileUrl = `/resumes/${fileName}`
+  const objectPath = `${safeUserId}/primary-resume${extension}`
 
   const existingResume = await prisma.resume.findFirst({
     where: { user_id: user.id },
     orderBy: { created_at: 'desc' },
   })
 
-  if (existingResume?.file_url && existingResume.file_url !== fileUrl) {
-    const previousPath = path.join(
-      process.cwd(),
-      'public',
-      existingResume.file_url.replace(/^\//, '')
-    )
-
-    if (previousPath.startsWith(publicDir)) {
-      await unlink(previousPath).catch(() => undefined)
-    }
-  }
-
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
-  await writeFile(filePath, buffer)
-
   const parsedData = await parseResume(buffer, file.type).catch((error) => {
     console.error('Resume parse error:', error)
     return {
@@ -85,6 +76,26 @@ export async function POST(request: NextRequest) {
     }
   })
   const parsedJson = parsedData as Prisma.InputJsonValue
+
+  let fileUrl: string
+  try {
+    fileUrl = await uploadResumeObject({
+      objectPath,
+      contentType: file.type,
+      body: buffer,
+    })
+  } catch (error) {
+    console.error('Resume storage error:', error)
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Resume could not be stored',
+      },
+      { status: 503 }
+    )
+  }
 
   const resume = await prisma.resume.upsert({
     where: { id: existingResume?.id ?? '' },
@@ -108,6 +119,12 @@ export async function POST(request: NextRequest) {
       parsed_data: parsedJson,
     },
   })
+
+  if (existingResume?.file_url && existingResume.file_url !== fileUrl) {
+    await deleteResumeObject(existingResume.file_url).catch((error) =>
+      console.warn('Could not delete the previous resume object:', error)
+    )
+  }
 
   if (parsedData.parse_status === 'parsed') {
     const profile = await prisma.profile.findUnique({
