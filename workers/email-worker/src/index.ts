@@ -1,86 +1,79 @@
-import { Worker, Queue } from 'bullmq'
+import { Worker } from 'bullmq'
 import Redis from 'ioredis'
 import { config } from 'dotenv'
+import path from 'node:path'
+import { prisma } from '@jobtourer/database'
 import { logger } from './lib/logger'
 import { generateEmailDraft } from './services/email-generation.service'
 import { createGmailDraft } from './services/gmail.service'
 
-config()
+config({ path: path.resolve(process.cwd(), '.env') })
+config({ path: path.resolve(process.cwd(), '../../.env') })
+
+function redisUrl() {
+  return (process.env.REDIS_URL || 'redis://localhost:6379')
+    .trim()
+    .replace(/^[\\"']+|[\\"']+$/g, '')
+}
 
 const connection = new Redis(
-  process.env.REDIS_URL || 'redis://localhost:6379',
-  {
-    maxRetriesPerRequest: null,
-  }
+  redisUrl(),
+  { maxRetriesPerRequest: null }
 )
 
-const emailQueue = new Queue('email-generation', { connection })
-
-// Worker for email draft generation
 const emailWorker = new Worker(
   'email-generation',
   async (job) => {
-    logger.info(`Processing email generation: ${job.id}`)
+    const { userId, jobId, resumeId, runId, createGmailDraft: syncGmail } =
+      job.data as {
+        userId: string
+        jobId: string
+        resumeId: string
+        runId?: string
+        createGmailDraft?: boolean
+      }
 
-    const { userId, jobId, resumeId, tone = 'professional' } = job.data
-
-    try {
-      // Generate email content using AI
-      const { subject, body } = await generateEmailDraft({
-        userId,
-        jobId,
-        resumeId,
-        tone,
-      })
-
-      logger.info(`Generated email for job ${jobId}`)
-
-      // Create draft in Gmail (if configured)
-      let gmailDraftId: string | null = null
+    const draft = await generateEmailDraft({ userId, jobId, resumeId })
+    let gmailDraftId: string | null = null
+    if (syncGmail && draft.recipientEmail) {
       try {
-        gmailDraftId = await createGmailDraft(userId, subject, body, resumeId)
-        logger.info(`Created Gmail draft: ${gmailDraftId}`)
+        gmailDraftId = await createGmailDraft(userId, draft.id)
       } catch (error) {
-        logger.warn('Failed to create Gmail draft:', error)
-        // Continue even if Gmail fails
+        const message = error instanceof Error ? error.message : String(error)
+        await prisma.emailDraft.update({
+          where: { id: draft.id },
+          data: { gmail_error: message },
+        })
+        logger.warn(`Gmail draft creation failed: ${message}`)
       }
-
-      return {
-        subject,
-        body,
-        gmailDraftId,
-      }
-    } catch (error) {
-      logger.error(`Email generation failed:`, error)
-      throw error
     }
+
+    if (runId) {
+      await prisma.automationRun.updateMany({
+        where: { id: runId },
+        data: {
+          drafts_created: { increment: 1 },
+          gmail_drafts_created: gmailDraftId ? { increment: 1 } : undefined,
+        },
+      })
+    }
+
+    return { emailDraftId: draft.id, gmailDraftId }
   },
   { connection, concurrency: 3 }
 )
 
-emailWorker.on('completed', (job) => {
-  logger.info(`Job ${job.id} completed successfully`)
-})
+emailWorker.on('completed', (job) => logger.info(`Email job ${job.id} completed`))
+emailWorker.on('failed', (job, error) =>
+  logger.error(`Email job ${job?.id} failed:`, error)
+)
 
-emailWorker.on('failed', (job, err) => {
-  logger.error(`Job ${job?.id} failed:`, err)
-})
+logger.info('Email automation worker started')
 
-// Export queue for adding jobs
-export { emailQueue }
-
-// Start the worker
-logger.info('🚀 Email worker started')
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM signal received: closing worker')
+async function shutdown() {
   await emailWorker.close()
-  process.exit(0)
-})
+  await connection.quit()
+}
 
-process.on('SIGINT', async () => {
-  logger.info('SIGINT signal received: closing worker')
-  await emailWorker.close()
-  process.exit(0)
-})
+process.on('SIGTERM', () => void shutdown())
+process.on('SIGINT', () => void shutdown())
