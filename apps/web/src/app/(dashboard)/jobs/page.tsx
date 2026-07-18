@@ -10,6 +10,15 @@ export default async function JobsPage({
   const query = parseJobQuery(await searchParams)
   const session = await getServerSession()
   const catalog = session ? await getJobCatalog(session.user.id) : []
+  const queryKey = [
+    query.search,
+    query.location,
+    query.source,
+    query.minMatch,
+    query.sort,
+    query.page,
+    query.pageSize,
+  ].join('|')
 
   return (
     <div className="space-y-6">
@@ -20,7 +29,11 @@ export default async function JobsPage({
         </p>
       </div>
 
-      <JobsExplorer catalog={catalog} initialQuery={query} />
+      <JobsExplorer
+        key={queryKey}
+        catalog={catalog}
+        initialQuery={query}
+      />
     </div>
   )
 }

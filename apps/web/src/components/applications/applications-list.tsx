@@ -5,9 +5,26 @@ import { unstable_cache } from 'next/cache'
 import { getServerSession } from '@/lib/server-session'
 
 const getApplications = unstable_cache(
-  (userId: string) =>
+  (userId: string, search: string) =>
     prisma.application.findMany({
-      where: { user_id: userId },
+      where: {
+        user_id: userId,
+        ...(search
+          ? {
+              job: {
+                OR: [
+                  { title: { contains: search, mode: 'insensitive' as const } },
+                  {
+                    company: {
+                      contains: search,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                ],
+              },
+            }
+          : {}),
+      },
       include: { job: true },
       orderBy: { updated_at: 'desc' },
       take: 20,
@@ -16,16 +33,19 @@ const getApplications = unstable_cache(
   { revalidate: 30, tags: ['application-data'] }
 )
 
-export async function ApplicationsList() {
+export async function ApplicationsList({ search = '' }: { search?: string }) {
   const session = await getServerSession()
-  const applications = session ? await getApplications(session.user.id) : []
+  const applications = session
+    ? await getApplications(session.user.id, search)
+    : []
 
   return (
     <section className="rounded-lg border bg-background">
       {applications.length === 0 ? (
         <div className="p-6 text-sm text-muted-foreground">
-          No applications yet. Applications will appear here after you create
-          drafts or mark jobs as applied.
+          {search
+            ? `No applications match "${search}".`
+            : 'No applications yet. Applications will appear here after you create drafts or mark jobs as applied.'}
         </div>
       ) : (
         applications.map((application) => (

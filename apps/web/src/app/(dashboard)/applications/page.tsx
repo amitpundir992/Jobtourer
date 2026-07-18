@@ -1,7 +1,17 @@
 import { ApplicationsList } from '@/components/applications/applications-list'
 import { ApplicationsStats } from '@/components/applications/applications-stats'
 
-export default function ApplicationsPage() {
+export default async function ApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const rawSearch = Array.isArray(params.search)
+    ? params.search[0]
+    : params.search
+  const search = rawSearch?.trim().slice(0, 100) ?? ''
+
   return (
     <div className="space-y-6">
       <div>
@@ -12,7 +22,7 @@ export default function ApplicationsPage() {
       </div>
 
       <ApplicationsStats />
-      <ApplicationsList />
+      <ApplicationsList search={search} />
     </div>
   )
 }
