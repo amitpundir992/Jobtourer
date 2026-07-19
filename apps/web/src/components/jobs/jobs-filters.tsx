@@ -25,10 +25,10 @@ export function JobsFilters({
   const [showFilters, setShowFilters] = useState(
     Boolean(
       query.location ||
-        query.source !== 'all' ||
-        query.minMatch > 0 ||
-        query.sort !== 'newest' ||
-        query.pageSize !== 15
+      query.source !== 'all' ||
+      query.minMatch > 0 ||
+      query.sort !== 'newest' ||
+      query.pageSize !== 15
     )
   )
   const [search, setSearch] = useState(query.search)

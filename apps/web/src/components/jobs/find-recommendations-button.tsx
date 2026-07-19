@@ -33,8 +33,9 @@ export function FindRecommendationsButton() {
 
       const saved = result.recommendationsSaved ?? 0
       const savedSources = Object.entries(result.recommendationSources ?? {})
-        .map(([source, count]) =>
-          `${source === 'remoteok' ? 'Remote OK' : source[0].toUpperCase() + source.slice(1)} ${count}`
+        .map(
+          ([source, count]) =>
+            `${source === 'remoteok' ? 'Remote OK' : source[0].toUpperCase() + source.slice(1)} ${count}`
         )
         .join(', ')
       setMessage(

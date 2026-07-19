@@ -4,8 +4,7 @@ import { prisma } from '@jobtourer/database'
 
 import { getCurrentUser } from '@/lib/auth'
 
-const GMAIL_COMPOSE_SCOPE =
-  'https://www.googleapis.com/auth/gmail.compose'
+const GMAIL_COMPOSE_SCOPE = 'https://www.googleapis.com/auth/gmail.compose'
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser(request)

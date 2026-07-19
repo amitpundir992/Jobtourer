@@ -24,7 +24,10 @@ export async function UpcomingJobs() {
     <section className="dashboard-card rounded-lg border p-5">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-base font-semibold">Top matches</h2>
-        <Link className="text-sm text-primary hover:underline" href="/jobs?sort=match">
+        <Link
+          className="text-sm text-primary hover:underline"
+          href="/jobs?sort=match"
+        >
           View all
         </Link>
       </div>

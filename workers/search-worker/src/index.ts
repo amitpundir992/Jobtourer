@@ -17,10 +17,7 @@ function redisUrl() {
     .replace(/^[\\"']+|[\\"']+$/g, '')
 }
 
-const connection = new Redis(
-  redisUrl(),
-  { maxRetriesPerRequest: null }
-)
+const connection = new Redis(redisUrl(), { maxRetriesPerRequest: null })
 const searchQueue = new Queue('job-search', { connection })
 const emailQueue = new Queue('email-generation', { connection })
 const MAX_DRAFTS_PER_RUN = 10
@@ -49,14 +46,20 @@ function localTime(date: Date, timezone: string): LocalTime {
 }
 
 function automationDue(
-  preference: { timezone: string; schedule_hour: number; last_run_at: Date | null },
+  preference: {
+    timezone: string
+    schedule_hour: number
+    last_run_at: Date | null
+  },
   now: Date
 ) {
   const current = localTime(now, preference.timezone)
   const last = preference.last_run_at
     ? localTime(preference.last_run_at, preference.timezone)
     : null
-  return current.hour === preference.schedule_hour && current.date !== last?.date
+  return (
+    current.hour === preference.schedule_hour && current.date !== last?.date
+  )
 }
 
 async function dispatchAutomation() {
@@ -102,7 +105,10 @@ async function dispatchAutomation() {
       )
       queued += 1
     } catch (error) {
-      logger.error(`Could not dispatch automation for ${preference.user_id}:`, error)
+      logger.error(
+        `Could not dispatch automation for ${preference.user_id}:`,
+        error
+      )
     }
   }
 
@@ -125,8 +131,14 @@ async function runUserSearch(userId: string, runId: string) {
         orderBy: { updated_at: 'desc' },
       }),
     ])
-    if (!preference?.enabled || !profile?.preferred_role || !resume?.parsed_data) {
-      throw new Error('Automation requires an enabled preference, profile, and parsed resume')
+    if (
+      !preference?.enabled ||
+      !profile?.preferred_role ||
+      !resume?.parsed_data
+    ) {
+      throw new Error(
+        'Automation requires an enabled preference, profile, and parsed resume'
+      )
     }
 
     const parsedResume = resume.parsed_data as unknown as ParsedResumeData
@@ -224,7 +236,8 @@ async function runUserSearch(userId: string, runId: string) {
               resumeId: resume.id,
               runId,
               createGmailDraft:
-                preference.create_gmail_drafts && Boolean(candidate.recipientEmail),
+                preference.create_gmail_drafts &&
+                Boolean(candidate.recipientEmail),
             },
             {
               jobId: `draft-${userId}-${savedJob.id}`,
@@ -282,7 +295,9 @@ const searchWorker = new Worker(
   { connection, concurrency: 3 }
 )
 
-searchWorker.on('completed', (job) => logger.info(`Search job ${job.id} completed`))
+searchWorker.on('completed', (job) =>
+  logger.info(`Search job ${job.id} completed`)
+)
 searchWorker.on('failed', (job, error) =>
   logger.error(`Search job ${job?.id} failed:`, error)
 )
@@ -307,7 +322,11 @@ void start().catch((error) => {
 })
 
 async function shutdown() {
-  await Promise.all([searchWorker.close(), searchQueue.close(), emailQueue.close()])
+  await Promise.all([
+    searchWorker.close(),
+    searchQueue.close(),
+    emailQueue.close(),
+  ])
   await connection.quit()
 }
 

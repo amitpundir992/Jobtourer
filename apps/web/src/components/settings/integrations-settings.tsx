@@ -18,7 +18,8 @@ export function IntegrationsSettings() {
           gmail: { email: string } | null
           error?: string
         }
-        if (!response.ok) throw new Error(result.error || 'Could not load Gmail status.')
+        if (!response.ok)
+          throw new Error(result.error || 'Could not load Gmail status.')
         setGmail(result.gmail)
       })
       .catch((loadError: Error) => setError(loadError.message))
@@ -56,7 +57,9 @@ export function IntegrationsSettings() {
           {gmail ? (
             <p className="mt-3 text-sm">Connected as {gmail.email}</p>
           ) : null}
-          {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
+          {error ? (
+            <p className="mt-3 text-sm text-destructive">{error}</p>
+          ) : null}
         </div>
 
         {loading ? (

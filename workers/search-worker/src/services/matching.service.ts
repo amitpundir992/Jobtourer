@@ -81,7 +81,11 @@ export function scoreCandidate(
     preferredLocations.some((location) =>
       job.location.toLowerCase().includes(location.toLowerCase())
     )
-  const locationScore = locationMatch ? 1 : knownLocation(job.location) ? 0 : 0.5
+  const locationScore = locationMatch
+    ? 1
+    : knownLocation(job.location)
+      ? 0
+      : 0.5
 
   if (
     profile.salary_min &&
@@ -95,9 +99,8 @@ export function scoreCandidate(
   const seniorJob = /\b(senior|staff|principal|lead|manager|director)\b/i.test(
     job.title
   )
-  const seniorProfile = /senior|staff|principal|lead|manager|[5-9]\+?years/.test(
-    profileExperience
-  )
+  const seniorProfile =
+    /senior|staff|principal|lead|manager|[5-9]\+?years/.test(profileExperience)
   const experienceScore = seniorJob ? (seniorProfile ? 1 : 0.25) : 1
 
   const score = Math.min(

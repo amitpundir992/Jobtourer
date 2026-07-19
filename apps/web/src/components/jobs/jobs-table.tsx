@@ -79,18 +79,16 @@ export function JobsTable({
   onPageChange: (page: number) => void
 }) {
   const firstResult =
-    pagination.total === 0
-      ? 0
-      : (pagination.page - 1) * pagination.pageSize + 1
+    pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1
   const lastResult = Math.min(
     pagination.page * pagination.pageSize,
     pagination.total
   )
   const hasFilters = Boolean(
     query.search ||
-      query.location ||
-      query.source !== 'all' ||
-      query.minMatch > 0
+    query.location ||
+    query.source !== 'all' ||
+    query.minMatch > 0
   )
   const pageItems = paginationItems(pagination.page, pagination.totalPages)
 
@@ -98,63 +96,63 @@ export function JobsTable({
     <div className="rounded-lg border bg-background">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-left text-sm">
-        <thead className="border-b bg-muted/50 text-muted-foreground">
-          <tr>
-            <th className="px-4 py-3 font-medium">Role</th>
-            <th className="px-4 py-3 font-medium">Company</th>
-            <th className="px-4 py-3 font-medium">Location</th>
-            <th className="px-4 py-3 font-medium">Source</th>
-            <th className="px-4 py-3 font-medium">Match</th>
-          </tr>
-        </thead>
-        <tbody>
-          {recommendations.length === 0 ? (
+          <thead className="border-b bg-muted/50 text-muted-foreground">
             <tr>
-              <td className="px-4 py-6 text-muted-foreground" colSpan={5}>
-                {hasFilters
-                  ? 'No recommendations match the current filters.'
-                  : 'No job matches yet. Select Find recommendations to search for real jobs using your profile and resume.'}
-              </td>
+              <th className="px-4 py-3 font-medium">Role</th>
+              <th className="px-4 py-3 font-medium">Company</th>
+              <th className="px-4 py-3 font-medium">Location</th>
+              <th className="px-4 py-3 font-medium">Source</th>
+              <th className="px-4 py-3 font-medium">Match</th>
             </tr>
-          ) : (
-            recommendations.map((recommendation) => (
-              <tr key={recommendation.id} className="border-b last:border-0">
-                <td className="px-4 py-3 font-medium">
-                  <a
-                    className="hover:underline"
-                    href={recommendation.job.url}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {recommendation.job.title}
-                  </a>
-                </td>
-                <td className="px-4 py-3">{recommendation.job.company}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {recommendation.job.location ?? '-'}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  <a
-                    className="hover:underline"
-                    href={
-                      sourceDetails[recommendation.job.source]?.url ??
-                      recommendation.job.url
-                    }
-                    target="_blank"
-                  >
-                    {sourceDetails[recommendation.job.source]?.label ??
-                      recommendation.job.source}
-                  </a>
-                </td>
-                <td className="px-4 py-3 font-semibold text-green-600">
-                  {recommendation.match_score !== null
-                    ? `${Math.round(recommendation.match_score * 100)}%`
-                    : '-'}
+          </thead>
+          <tbody>
+            {recommendations.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-muted-foreground" colSpan={5}>
+                  {hasFilters
+                    ? 'No recommendations match the current filters.'
+                    : 'No job matches yet. Select Find recommendations to search for real jobs using your profile and resume.'}
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
+            ) : (
+              recommendations.map((recommendation) => (
+                <tr key={recommendation.id} className="border-b last:border-0">
+                  <td className="px-4 py-3 font-medium">
+                    <a
+                      className="hover:underline"
+                      href={recommendation.job.url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {recommendation.job.title}
+                    </a>
+                  </td>
+                  <td className="px-4 py-3">{recommendation.job.company}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {recommendation.job.location ?? '-'}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <a
+                      className="hover:underline"
+                      href={
+                        sourceDetails[recommendation.job.source]?.url ??
+                        recommendation.job.url
+                      }
+                      target="_blank"
+                    >
+                      {sourceDetails[recommendation.job.source]?.label ??
+                        recommendation.job.source}
+                    </a>
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-green-600">
+                    {recommendation.match_score !== null
+                      ? `${Math.round(recommendation.match_score * 100)}%`
+                      : '-'}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
         </table>
       </div>
       <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">

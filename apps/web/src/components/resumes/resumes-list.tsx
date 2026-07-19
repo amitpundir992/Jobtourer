@@ -21,11 +21,7 @@ function getRawPreview(parsedData: ParsedResumeData) {
 }
 
 export function ResumesList({ initialResumes }: { initialResumes: Resume[] }) {
-  const {
-    data: resumes = [],
-    isLoading,
-    error,
-  } = useResumes(initialResumes)
+  const { data: resumes = [], isLoading, error } = useResumes(initialResumes)
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading resume...</p>

@@ -29,11 +29,7 @@ export default async function JobsPage({
         </p>
       </div>
 
-      <JobsExplorer
-        key={queryKey}
-        catalog={catalog}
-        initialQuery={query}
-      />
+      <JobsExplorer key={queryKey} catalog={catalog} initialQuery={query} />
     </div>
   )
 }

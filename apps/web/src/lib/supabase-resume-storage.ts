@@ -25,11 +25,7 @@ function storageConfig() {
 }
 
 function encodeObjectPath(objectPath: string) {
-  return objectPath
-    .split('/')
-    .filter(Boolean)
-    .map(encodeURIComponent)
-    .join('/')
+  return objectPath.split('/').filter(Boolean).map(encodeURIComponent).join('/')
 }
 
 function storageRequestUrl(objectPath: string) {

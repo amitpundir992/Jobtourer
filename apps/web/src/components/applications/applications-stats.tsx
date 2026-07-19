@@ -29,13 +29,9 @@ const getApplicationCounts = unstable_cache(
 export async function ApplicationsStats() {
   const session = await getServerSession()
 
-  const grouped = session
-    ? await getApplicationCounts(session.user.id)
-    : []
+  const grouped = session ? await getApplicationCounts(session.user.id) : []
 
-  const counts = new Map(
-    grouped.map((item) => [item.status, item.count])
-  )
+  const counts = new Map(grouped.map((item) => [item.status, item.count]))
 
   return (
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -14,9 +14,12 @@ export default async function SettingsPage({
   const session = await getServerSession()
   const { tab } = await searchParams
   const profile = session ? await getUserProfile(session.user.id) : null
-  const defaultTab = ['profile', 'preferences', 'integrations', 'billing'].includes(
-    tab ?? ''
-  )
+  const defaultTab = [
+    'profile',
+    'preferences',
+    'integrations',
+    'billing',
+  ].includes(tab ?? '')
     ? tab
     : 'profile'
 

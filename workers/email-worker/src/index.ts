@@ -16,22 +16,24 @@ function redisUrl() {
     .replace(/^[\\"']+|[\\"']+$/g, '')
 }
 
-const connection = new Redis(
-  redisUrl(),
-  { maxRetriesPerRequest: null }
-)
+const connection = new Redis(redisUrl(), { maxRetriesPerRequest: null })
 
 const emailWorker = new Worker(
   'email-generation',
   async (job) => {
-    const { userId, jobId, resumeId, runId, createGmailDraft: syncGmail } =
-      job.data as {
-        userId: string
-        jobId: string
-        resumeId: string
-        runId?: string
-        createGmailDraft?: boolean
-      }
+    const {
+      userId,
+      jobId,
+      resumeId,
+      runId,
+      createGmailDraft: syncGmail,
+    } = job.data as {
+      userId: string
+      jobId: string
+      resumeId: string
+      runId?: string
+      createGmailDraft?: boolean
+    }
 
     const draft = await generateEmailDraft({ userId, jobId, resumeId })
     let gmailDraftId: string | null = null
@@ -63,7 +65,9 @@ const emailWorker = new Worker(
   { connection, concurrency: 3 }
 )
 
-emailWorker.on('completed', (job) => logger.info(`Email job ${job.id} completed`))
+emailWorker.on('completed', (job) =>
+  logger.info(`Email job ${job.id} completed`)
+)
 emailWorker.on('failed', (job, error) =>
   logger.error(`Email job ${job?.id} failed:`, error)
 )

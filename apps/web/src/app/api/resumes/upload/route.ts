@@ -89,9 +89,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error
-            ? error.message
-            : 'Resume could not be stored',
+          error instanceof Error ? error.message : 'Resume could not be stored',
       },
       { status: 503 }
     )

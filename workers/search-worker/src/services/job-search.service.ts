@@ -63,11 +63,16 @@ function canonicalUrl(value: string) {
     const url = new URL(value)
     return `${url.hostname.toLowerCase()}${url.pathname.replace(/\/$/, '')}`
   } catch {
-    return value.toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '')
+    return value
+      .toLowerCase()
+      .replace(/[?#].*$/, '')
+      .replace(/\/$/, '')
   }
 }
 
-function fingerprint(job: Pick<CandidateJob, 'company' | 'title' | 'location' | 'url'>) {
+function fingerprint(
+  job: Pick<CandidateJob, 'company' | 'title' | 'location' | 'url'>
+) {
   return createHash('sha256')
     .update(
       [job.company, job.title, job.location, canonicalUrl(job.url)]
@@ -84,7 +89,9 @@ function recipientEmail(text: string) {
   )
 }
 
-function withMetadata(job: Omit<CandidateJob, 'fingerprint' | 'recipientEmail'>) {
+function withMetadata(
+  job: Omit<CandidateJob, 'fingerprint' | 'recipientEmail'>
+) {
   return {
     ...job,
     fingerprint: fingerprint(job),
@@ -140,9 +147,10 @@ async function remoteOk(): Promise<CandidateJob[]> {
         salaryMin: job.salary_min,
         salaryMax: job.salary_max,
         salaryCurrency: 'USD',
-        postedAt: job.date && !Number.isNaN(Date.parse(job.date))
-          ? new Date(job.date)
-          : undefined,
+        postedAt:
+          job.date && !Number.isNaN(Date.parse(job.date))
+            ? new Date(job.date)
+            : undefined,
       })
     )
 }
@@ -332,7 +340,8 @@ async function smartRecruiters(companies: string[]): Promise<CandidateJob[]> {
             ].filter((tag): tag is string => Boolean(tag)),
             jobType: posting.typeOfEmployment?.label,
             postedAt:
-              posting.releasedDate && !Number.isNaN(Date.parse(posting.releasedDate))
+              posting.releasedDate &&
+              !Number.isNaN(Date.parse(posting.releasedDate))
                 ? new Date(posting.releasedDate)
                 : undefined,
           })
@@ -350,7 +359,9 @@ async function smartRecruiters(companies: string[]): Promise<CandidateJob[]> {
 }
 
 export async function searchJobs(preferences: SearchPreferences) {
-  const preferredSlugs = preferences.preferredCompanies.map(slug).filter(Boolean)
+  const preferredSlugs = preferences.preferredCompanies
+    .map(slug)
+    .filter(Boolean)
   const sources: Array<Promise<SourceResult>> = [
     remoteOk().then((jobs) => ({ source: 'remoteok', jobs })),
     greenhouse(

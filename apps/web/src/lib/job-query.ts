@@ -87,9 +87,7 @@ async function queryJobRecommendations(userId: string, query: JobQuery) {
       const rightDate = new Date(
         right.job.posted_at ?? right.created_at
       ).getTime()
-      const leftDate = new Date(
-        left.job.posted_at ?? left.created_at
-      ).getTime()
+      const leftDate = new Date(left.job.posted_at ?? left.created_at).getTime()
       return rightDate - leftDate
     })
   const total = recommendations.length

@@ -25,7 +25,12 @@ function resumePath(fileUrl: string) {
 }
 
 function base64Lines(value: Buffer) {
-  return value.toString('base64').match(/.{1,76}/g)?.join('\r\n') ?? ''
+  return (
+    value
+      .toString('base64')
+      .match(/.{1,76}/g)
+      ?.join('\r\n') ?? ''
+  )
 }
 
 function encodeMessage(input: {

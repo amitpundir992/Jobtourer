@@ -34,9 +34,7 @@ export function LogoutButton({ compact = false }: { compact?: boolean }) {
       variant="ghost"
     >
       {isLoading ? (
-        <Loader2
-          className={`${compact ? '' : 'mr-3'} h-4 w-4 animate-spin`}
-        />
+        <Loader2 className={`${compact ? '' : 'mr-3'} h-4 w-4 animate-spin`} />
       ) : (
         <LogOut className={`${compact ? '' : 'mr-3'} h-4 w-4`} />
       )}
