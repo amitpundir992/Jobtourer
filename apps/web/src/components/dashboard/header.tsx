@@ -2,7 +2,13 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, BriefcaseBusiness, FileCheck2, Loader2, Search } from 'lucide-react'
+import {
+  Bell,
+  BriefcaseBusiness,
+  FileCheck2,
+  Loader2,
+  Search,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/logout-button'
@@ -38,9 +44,12 @@ export function DashboardHeader() {
     const timeout = window.setTimeout(async () => {
       setLoading(true)
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(search)}`, {
-          signal: controller.signal,
-        })
+        const response = await fetch(
+          `/api/search?q=${encodeURIComponent(search)}`,
+          {
+            signal: controller.signal,
+          }
+        )
         if (!response.ok) throw new Error('Search failed')
         const data = (await response.json()) as { results?: SearchResult[] }
         if (currentRequest === requestId.current) {
