@@ -6,6 +6,7 @@ import { Bell, BriefcaseBusiness, FileCheck2, Loader2, Search } from 'lucide-rea
 
 import { Button } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/logout-button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 interface SearchResult {
   id: string
@@ -149,9 +150,12 @@ export function DashboardHeader() {
           </div>
         ) : null}
       </form>
-      <Button variant="ghost" size="icon" aria-label="Notifications">
-        <Bell className="h-4 w-4" />
-      </Button>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        <Button variant="ghost" size="icon" aria-label="Notifications">
+          <Bell className="h-4 w-4" />
+        </Button>
+      </div>
       <div className="md:hidden">
         <LogoutButton compact />
       </div>

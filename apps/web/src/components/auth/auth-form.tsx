@@ -14,6 +14,7 @@ import {
 
 import { AnimatedCodeBackground } from '@/components/effects/animated-code-background'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { authClient } from '@/lib/auth-client'
 
 type AuthMode = 'login' | 'signup'
@@ -128,6 +129,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <main className="auth-shell">
       <AnimatedCodeBackground />
+      <ThemeToggle className="auth-theme-control" />
 
       <div className="auth-layout">
         <section className="auth-brand-panel">

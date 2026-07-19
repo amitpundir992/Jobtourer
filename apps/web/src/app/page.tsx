@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { AnimatedCodeBackground } from '@/components/effects/animated-code-background'
+import { ThemeToggle } from '@/components/theme-toggle'
 import {
   ArrowRight,
   Briefcase,
@@ -23,6 +24,7 @@ export default function HomePage() {
             <span className="text-xl font-bold">JobTourer</span>
           </Link>
           <nav className="flex items-center space-x-4">
+            <ThemeToggle />
             <Link href="/login" className="text-sm font-medium hover:underline">
               Login
             </Link>
