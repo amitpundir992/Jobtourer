@@ -11,8 +11,8 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { LogoutButton } from '@/components/auth/logout-button'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { MobileDashboardNav } from '@/components/dashboard/nav'
 
 interface SearchResult {
   id: string
@@ -85,8 +85,9 @@ export function DashboardHeader() {
 
   return (
     <header className="dashboard-header flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
+      <MobileDashboardNav />
       <form
-        className="relative w-full max-w-md"
+        className="relative min-w-0 flex-1 md:max-w-md"
         role="search"
         onSubmit={submitSearch}
         onFocus={() => query.trim().length >= 2 && setOpen(true)}
@@ -161,12 +162,14 @@ export function DashboardHeader() {
       </form>
       <div className="flex items-center gap-1">
         <ThemeToggle />
-        <Button variant="ghost" size="icon" aria-label="Notifications">
+        <Button
+          className="hidden sm:inline-flex"
+          variant="ghost"
+          size="icon"
+          aria-label="Notifications"
+        >
           <Bell className="h-4 w-4" />
         </Button>
-      </div>
-      <div className="md:hidden">
-        <LogoutButton compact />
       </div>
     </header>
   )
