@@ -1,276 +1,182 @@
 # JobTourer
 
-JobTourer is a production-oriented job discovery and application workflow platform. It collects jobs from public company boards, scores them against a candidate profile and parsed resume, stores personalized recommendations, and can prepare reviewable Gmail drafts with the selected resume attached.
+JobTourer is a job discovery and application workflow platform that helps candidates find relevant opportunities, organize recommendations, and prepare application drafts from one workspace.
 
-The system is designed around one important boundary: JobTourer automates discovery and draft preparation, while the user remains in control of reviewing and sending applications.
+The application searches supported job boards, compares openings with the user's profile and resume, and presents ranked recommendations. It can also prepare reviewable email drafts for suitable jobs while leaving the final decision and sending action with the user.
 
-## Current Capabilities
+## What JobTourer Can Do
 
-- Email/password, Google, and GitHub authentication with Better Auth
-- Thirty-day database-backed sessions with daily session renewal
-- Candidate profile and job-preference management
-- PDF and DOCX resume upload, parsing, and private Supabase storage
-- Real job ingestion from Remote OK, Greenhouse, Lever, Ashby, and SmartRecruiters
-- Deterministic resume/profile-to-job scoring and duplicate detection
-- Server-side filtering, sorting, and pagination for recommendations
-- Manual and scheduled automation through Trigger.dev
-- Daily, weekly, and monthly schedules with timezone support
-- Internal application draft generation with optional AI enhancement
-- Gmail OAuth integration and encrypted refresh-token storage
-- Gmail draft creation only when a published hiring email is available
-- Application dashboard, run history, responsive navigation, and light/dark themes
+- Register and sign in with email, Google, or GitHub
+- Maintain a candidate profile and job preferences
+- Upload and replace a primary PDF or DOCX resume
+- Extract skills, experience, education, and projects from a resume
+- Search real jobs from supported public job-board sources
+- Compare jobs with profile and resume information
+- Rank recommendations using a match score
+- Filter, sort, search, and paginate job recommendations
+- Track applications and recent activity
+- Generate personalized internal application drafts
+- Create reviewable Gmail drafts when a hiring email is available
+- Run job discovery manually or on a configurable schedule
+- Review automation history and result counts
+- Use the application in light or dark mode
+- Navigate the complete dashboard on desktop and mobile
 
-Google Search, LinkedIn, Indeed, Glassdoor, and Wellfound are not currently connected. Their names should not be presented as active sources until a compliant API or approved integration is implemented.
+## Supported Job Sources
 
-## Architecture
+JobTourer currently collects jobs from:
 
-```text
-Browser
-  |
-  v
-Next.js application (UI, protected routes, API handlers)
-  |-- Better Auth --------------------------> Google / GitHub OAuth
-  |-- Prisma -------------------------------> Neon PostgreSQL
-  |-- Resume upload ------------------------> Supabase private bucket
-  |-- Job connectors -----------------------> Public ATS/job-board APIs
-  |-- Trigger.dev SDK ----------------------> Trigger.dev Cloud
-  `-- Gmail OAuth/API ----------------------> Reviewable Gmail drafts
+- Remote OK
+- Greenhouse job boards
+- Lever job boards
+- Ashby job boards
+- SmartRecruiters job boards
 
-Trigger.dev task
-  |-- fetch and normalize jobs
-  |-- score jobs against profile + resume
-  |-- upsert jobs and recommendations
-  |-- generate internal drafts
-  `-- create Gmail drafts when a hiring email exists
-```
+Other portals such as LinkedIn, Indeed, Glassdoor, Google Jobs, and Wellfound are not currently connected.
 
-### Automation Lifecycle
+## How Automation Works
 
-1. A user completes a profile and uploads a default resume.
-2. The user starts a run manually or enables a daily, weekly, or monthly schedule.
-3. Trigger.dev executes the job-search task outside the web request lifecycle.
-4. Connectors are queried independently. A failed source does not discard successful source results.
-5. Jobs are normalized and deduplicated using stable identifiers and SHA-256 fingerprints.
-6. Relevant jobs are scored using role, skills, location, work preference, and salary signals.
-7. Jobs meeting the configured threshold are persisted as recommendations.
-8. Up to ten application drafts are prepared per run.
-9. Gmail drafts are created only for jobs that expose a suitable hiring address. Missing-email jobs are skipped without failing the run.
-10. Counts and errors are recorded in `AutomationRun` for visibility in Settings.
+1. The user completes a profile and uploads a primary resume.
+2. The user chooses a minimum match score and an automation schedule.
+3. A run starts manually or at the configured daily, weekly, or monthly time.
+4. JobTourer collects and normalizes jobs from all supported sources.
+5. Duplicate and irrelevant jobs are removed.
+6. Remaining jobs are scored using role, skills, location, work preference, and salary information.
+7. Qualified jobs are saved as recommendations.
+8. Application drafts are prepared for the strongest matches.
+9. Gmail drafts are created only when Gmail is connected and the job includes a published hiring email.
+10. The run records how many jobs were scanned, matched, and used to create drafts.
 
-Trigger.dev must execute a run before the system can know that no matches exist. A successful zero-match run therefore ends as `completed` with zero recommendations and zero drafts.
+A run can complete successfully with zero matches. The automation must search and score jobs before it can determine that none meet the selected threshold.
 
-## Technology
+## Technology Stack
 
-| Area | Implementation |
+| Area | Technology |
 | --- | --- |
-| Web | Next.js 15 App Router, React 18, TypeScript |
-| UI | Tailwind CSS, Radix UI, Lucide, next-themes |
-| Authentication | Better Auth with Prisma adapter |
-| Database | PostgreSQL (Neon in production), Prisma 5 |
-| Automation | Trigger.dev v4 |
-| Resume storage | Private Supabase Storage bucket |
-| Resume parsing | `pdf-parse` and Mammoth |
-| Email | Gmail OAuth 2.0 and Gmail Drafts API |
-| AI drafts | Gemini, OpenAI, or Anthropic with template fallback |
+| Web application | Next.js 15, React 18, TypeScript |
+| Styling and UI | Tailwind CSS, Radix UI, Lucide |
+| Authentication | Better Auth |
+| Database | PostgreSQL and Prisma |
+| Automation | Trigger.dev |
+| Resume storage | Supabase Storage |
+| Resume parsing | PDF and DOCX parsing libraries |
+| Email drafts | Gmail API |
 | Monorepo | pnpm workspaces |
-| Quality | TypeScript, ESLint, Prettier, GitHub Actions |
+| Code quality | TypeScript, ESLint, Prettier, GitHub Actions |
 
-## Repository Layout
+## Project Structure
 
 ```text
-.
+jobtourer/
 |-- apps/
-|   `-- web/
-|       |-- src/app/             # App Router pages and protected API handlers
-|       |-- src/components/      # Product UI and feature components
-|       |-- src/lib/             # Auth, matching, storage, and automation logic
-|       |-- trigger/             # Trigger.dev task definitions
-|       `-- trigger.config.ts    # Trigger.dev runtime/build configuration
+|   `-- web/                       # Next.js application and API routes
+|       |-- src/app/              # Pages, layouts, and API handlers
+|       |-- src/components/       # Feature and interface components
+|       |-- src/lib/              # Application services and domain logic
+|       `-- trigger/              # Scheduled automation tasks
 |-- packages/
-|   |-- config/                  # Shared configuration and token encryption
-|   |-- database/                # Prisma client and schema
-|   |-- types/                   # Shared domain types
-|   `-- ui/                      # Shared UI primitives
-|-- workers/
-|   |-- search-worker/           # Optional legacy BullMQ search worker
-|   `-- email-worker/            # Optional legacy BullMQ email worker
-|-- scripts/                     # Development and migration helpers
-|-- .github/workflows/ci.yml     # Quality, build, and test pipeline
+|   |-- config/                   # Shared configuration utilities
+|   |-- database/                 # Prisma schema and database client
+|   |-- types/                    # Shared TypeScript types
+|   `-- ui/                       # Shared UI components
+|-- workers/                      # Optional background-worker packages
+|-- scripts/                      # Development utilities
+|-- .github/workflows/            # Continuous-integration workflows
+|-- package.json
 `-- pnpm-workspace.yaml
 ```
 
-The Trigger.dev tasks under `apps/web/trigger` are the primary automation path. The Redis/BullMQ workers remain available for the older worker deployment model but are not required for the current Trigger.dev flow.
+## Requirements
 
-## Prerequisites
+Install the following before running JobTourer:
 
-- Node.js 22 LTS recommended (minimum supported version: 20)
-- pnpm 8.15 or newer within the pnpm 8 line
+- Node.js 22 LTS
+- pnpm 8 or newer
 - PostgreSQL database
-- Trigger.dev account and project
-- Supabase project for resume storage
-- Google Cloud OAuth client for Gmail integration
-- Optional Google and GitHub OAuth clients for social sign-in
-- Optional Gemini, OpenAI, or Anthropic API key for AI-written drafts
 
-## Local Development
+The complete application also requires accounts for the external services used by authentication, resume storage, automation, and Gmail drafts.
 
-### 1. Install dependencies
+## Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/amitpundir992/Jobtourer.git
+cd Jobtourer
+```
+
+### 2. Install dependencies
 
 ```bash
 pnpm install --frozen-lockfile
 ```
 
-### 2. Configure the environment
+### 3. Configure local services
 
-Create a root `.env` file. Environment files are ignored by Git and must never be committed.
+Create a root `.env` file and add the configuration required for the services you intend to use. Keep this file private and never commit it to Git.
 
-At minimum, local development requires the database, application URL, Better Auth secret, Supabase storage credentials, and Trigger.dev credentials. Add provider-specific variables only for the integrations being exercised.
+At minimum, configure:
 
-### 3. Generate the Prisma client and apply the schema
+- A PostgreSQL database
+- The local application URL
+- Authentication
+- Resume storage
+- Background automation
+
+Gmail, social login, and AI-assisted drafting can be configured when those features are needed.
+
+### 4. Prepare the database
+
+Generate the Prisma client:
 
 ```bash
 pnpm db:generate
+```
+
+Apply the current schema to a development database:
+
+```bash
 pnpm db:push
 ```
 
-Use migrations for controlled schema changes:
-
-```bash
-pnpm db:migrate
-```
-
-### 4. Start the web application
+### 5. Start the web application
 
 ```bash
 pnpm dev:web
 ```
 
-The application is available at `http://localhost:3000`. If that port is occupied, Next.js selects the next available port; update local OAuth redirect URLs accordingly.
+Open `http://localhost:3000` in a browser. Next.js may select another port when port 3000 is already occupied.
 
-### 5. Start the Trigger.dev worker
+### 6. Start local automation
 
-Run this in a second terminal:
+Open a second terminal in the project directory and run:
 
 ```bash
 pnpm trigger:dev
 ```
 
-A development Trigger secret (`tr_dev_...`) sends runs to the local Trigger.dev worker. Without this process, manual runs remain queued in development.
+Keep this process running while testing manual or scheduled automation locally.
 
-## Environment Variables
-
-### Core application
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | Yes | PostgreSQL connection string used by Prisma |
-| `NEXT_PUBLIC_APP_URL` | Yes | Canonical application origin, for example `http://localhost:3000` |
-| `NEXT_PUBLIC_API_URL` | No | Explicit API origin when it differs from the app origin |
-| `BETTER_AUTH_URL` | Yes | Better Auth base URL; normally the same as the application URL |
-| `BETTER_AUTH_SECRET` | Yes | High-entropy server-side authentication secret |
-
-### Login providers
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `GOOGLE_CLIENT_ID` | For Google login | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | For Google login | Google OAuth client secret |
-| `GITHUB_CLIENT_ID` | For GitHub login | GitHub OAuth client ID |
-| `GITHUB_CLIENT_SECRET` | For GitHub login | GitHub OAuth client secret |
-
-Better Auth callback URLs use the application origin, including `/api/auth/callback/google` and `/api/auth/callback/github`.
-
-### Resume storage
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only key used to manage private resume objects |
-| `SUPABASE_RESUME_BUCKET` | No | Private bucket name; defaults to `resumes` |
-
-`SUPABASE_SERVICE_ROLE_KEY` must remain server-side. Do not rename it with a `NEXT_PUBLIC_` prefix.
-
-### Trigger.dev
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `TRIGGER_PROJECT_REF` | Yes | Trigger.dev project reference |
-| `TRIGGER_SECRET_KEY` | Yes | Development or production Trigger.dev secret |
-
-Use a development secret locally and a production secret in Vercel and Trigger.dev Cloud. Deploy tasks after changing task code or Trigger configuration:
-
-```bash
-pnpm trigger:deploy
-```
-
-### Gmail drafts
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `GMAIL_CLIENT_ID` | For Gmail | Google OAuth client ID with Gmail API access |
-| `GMAIL_CLIENT_SECRET` | For Gmail | Google OAuth client secret |
-| `GMAIL_REDIRECT_URI` | For Gmail | Exact callback URL ending in `/api/auth/gmail/callback` |
-| `TOKEN_ENCRYPTION_KEY` | For Gmail | Base64-encoded 32-byte AES-256-GCM key |
-
-Generate the token-encryption key with Node.js:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-The Google OAuth consent screen must include the user as a test user while the app remains in testing mode. The Gmail API must be enabled and the redirect URI must match exactly.
-
-### Draft generation
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `AI_PROVIDER` | No | `gemini`, `openai`, `claude`, or `template` |
-| `GOOGLE_GEMINI_API_KEY` | For Gemini | Gemini API key |
-| `OPENAI_API_KEY` | For OpenAI | OpenAI API key |
-| `ANTHROPIC_API_KEY` | For Claude | Anthropic API key |
-
-When no configured AI call succeeds, the automation uses a conservative template and never invents candidate experience.
-
-### Job-source customization
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `GREENHOUSE_BOARD_TOKENS` | No | Comma-separated Greenhouse board tokens |
-| `LEVER_SITE_NAMES` | No | Comma-separated Lever site names |
-| `ASHBY_BOARD_NAMES` | No | Comma-separated Ashby board names |
-| `SMARTRECRUITERS_COMPANIES` | No | Comma-separated SmartRecruiters company identifiers |
-
-Defaults are defined in `apps/web/src/lib/job-recommendations.ts`. Preferred companies from the user profile are also considered as possible ATS identifiers.
-
-### Optional legacy workers
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `REDIS_URL` | Legacy workers only | Redis connection string for BullMQ |
-| `LOG_LEVEL` | No | Worker logging verbosity |
-
-Redis is not required by the primary Trigger.dev automation workflow.
-
-## Commands
+## Development Commands
 
 | Command | Description |
 | --- | --- |
 | `pnpm dev:web` | Start the Next.js development server |
-| `pnpm trigger:dev` | Start the local Trigger.dev worker |
-| `pnpm trigger:deploy` | Deploy Trigger.dev tasks |
-| `pnpm dev:workers` | Start optional BullMQ workers |
-| `pnpm build` | Build the web application |
-| `pnpm build:workers` | Build optional workers |
-| `pnpm typecheck` | Type-check all workspace packages |
-| `pnpm lint` | Lint workspace packages |
-| `pnpm format:check` | Validate formatting without modifying files |
-| `pnpm test` | Run workspace tests |
-| `pnpm db:generate` | Generate Prisma Client |
-| `pnpm db:push` | Synchronize the schema in development |
+| `pnpm trigger:dev` | Start local automation tasks |
+| `pnpm dev:workers` | Start the optional worker packages |
+| `pnpm db:generate` | Generate the Prisma client |
+| `pnpm db:push` | Apply the schema to a development database |
 | `pnpm db:migrate` | Create and apply a development migration |
 | `pnpm db:studio` | Open Prisma Studio |
+| `pnpm typecheck` | Run TypeScript checks |
+| `pnpm lint` | Run ESLint |
+| `pnpm format:check` | Check repository formatting |
+| `pnpm test` | Run workspace tests |
+| `pnpm build` | Create a production web build |
 
-Before opening a pull request, run:
+## Verify a Change
+
+Run the quality checks before opening a pull request:
 
 ```bash
 pnpm db:generate
@@ -283,76 +189,68 @@ pnpm build
 
 ## Production Deployment
 
-### Vercel
+The web application can be deployed as a Next.js project. The repository is structured as a monorepo, and the web application is located in `apps/web`.
 
-Use the following project settings for the web application:
+A complete production deployment includes:
 
-- Framework preset: `Next.js`
-- Root directory: `apps/web`
-- Install command: `pnpm install --frozen-lockfile`
-- Build command: `pnpm --filter @jobtourer/database db:generate && pnpm build`
-- Output directory: leave unset and use the Next.js default
+1. The Next.js web application
+2. A managed PostgreSQL database
+3. Private resume storage
+4. Deployed Trigger.dev tasks
+5. Configured authentication providers
+6. Optional Gmail and AI integrations
 
-Add the required environment variables to Production, Preview, and Development as appropriate. Production OAuth URLs must use the final HTTPS deployment origin, then be updated in Google Cloud, GitHub, Better Auth, and Gmail configuration.
+Store production configuration in the deployment platform's encrypted environment settings. Do not place credentials in source files, documentation, screenshots, or Git history.
 
-Vercel's Git integration deploys the web application. The GitHub Actions workflow validates quality, build, and tests but does not require a separate Vercel token.
-
-### Trigger.dev Cloud
-
-1. Add the same server-side database, storage, Gmail, encryption, AI, and application URL variables to the Trigger.dev production environment.
-2. Use the production Trigger secret in Vercel.
-3. Deploy tasks with `pnpm trigger:deploy`.
-4. Verify the deployed task version in the Trigger.dev dashboard.
-5. Run one manual automation from Settings and confirm that `AutomationRun` reaches `completed`.
-
-### Database changes
-
-Production schema changes should be represented by reviewed Prisma migrations and applied with:
+After deploying the web application, deploy the automation tasks:
 
 ```bash
-pnpm --filter @jobtourer/database exec prisma migrate deploy
+pnpm trigger:deploy
 ```
 
-Do not use `prisma db push` as the production migration strategy.
+Verify the deployment by completing a profile, uploading a resume, running automation manually, and confirming that the run reaches a completed state.
 
-## Security and Operational Notes
+## Application Behavior
 
-- Every profile, resume, job, integration, and automation endpoint verifies the authenticated user.
-- Better Auth sessions expire after 30 days and are renewed after 24 hours of activity.
-- Gmail refresh tokens are encrypted with AES-256-GCM before database storage.
-- Resumes are stored in a private Supabase bucket and downloaded server-side.
-- Service-role keys, OAuth secrets, Trigger secrets, database URLs, and encryption keys must never enter client bundles or Git history.
-- Automation uses idempotency keys and job fingerprints to limit duplicate processing.
-- Source failures are isolated with `Promise.allSettled`; inspect Trigger.dev logs and `AutomationRun.error` when a run fails.
-- Gmail drafts are never created without a discovered recipient address, and drafts are not sent automatically.
-- Rotate any secret immediately if it appears in logs, screenshots, commits, or pull-request output.
+### Job matching
+
+Recommendations are based on information from the candidate profile and parsed resume. A higher minimum match value produces fewer, more selective recommendations.
+
+### Resume management
+
+The application currently maintains one primary resume per user. Uploading another resume replaces the primary file and updates its parsed information.
+
+### Email drafts
+
+JobTourer creates drafts for review; it does not automatically send applications. Jobs without a suitable recipient email remain valid recommendations but do not produce Gmail drafts.
+
+### Scheduled runs
+
+Scheduling can be disabled or configured to run daily, on selected weekdays, or on a selected day of the month. Manual runs remain available independently of the saved schedule.
 
 ## Troubleshooting
 
 ### Automation remains queued locally
 
-Start `pnpm trigger:dev` and confirm that `.env` contains a `tr_dev_...` Trigger secret for the same project.
+Confirm that the local Trigger.dev process is running in a second terminal.
 
-### A run completes with zero matches
+### No job matches are found
 
-This is valid. Review the profile, parsed resume, preferred locations, and minimum-match threshold. The run still had to scan and score jobs before returning zero.
+Review the preferred role, skills, locations, parsed resume, and minimum match score. A completed run with zero matches is valid behavior.
 
-### Gmail returns `403 access_denied`
+### Resume parsing returns no information
 
-Add the Google account under OAuth consent-screen test users, enable the Gmail API, and verify the exact redirect URI.
+Use a text-based PDF or DOCX file no larger than 10 MB. Image-only or scanned documents may not contain extractable text.
 
-### Gmail drafts remain at zero
+### Gmail drafts are not created
 
-Connect Gmail, enable Gmail draft creation, and remember that a draft is created only when the job posting includes a published hiring email.
-
-### Resume upload fails
-
-Confirm the Supabase URL and service-role key, ensure the configured bucket can be created or accessed, and upload a PDF or DOCX no larger than 10 MB.
-
-### Prisma fails inside Trigger.dev
-
-Keep `@trigger.dev/build`, `@trigger.dev/sdk`, and `trigger.dev` on compatible pinned versions. The Trigger configuration uses the Prisma legacy extension because this repository uses Prisma 5 with `prisma-client-js`.
+Confirm that Gmail is connected and Gmail draft creation is enabled. Drafts are created only for matched jobs with an available hiring email.
 
 ## Contributing
 
-Keep changes focused, preserve workspace boundaries, and include tests for behavior with meaningful risk. Never commit `.env`, `.trigger`, uploaded resumes, generated build output, or credentials. Commit `pnpm-lock.yaml` whenever dependencies change so local, CI, Vercel, and Trigger.dev builds remain reproducible.
+- Keep changes focused on the requested behavior.
+- Follow the existing workspace and feature boundaries.
+- Add tests for meaningful behavior changes.
+- Run all quality checks before submitting changes.
+- Commit the lockfile when dependencies change.
+- Never commit local environment files, generated output, uploaded resumes, or credentials.
