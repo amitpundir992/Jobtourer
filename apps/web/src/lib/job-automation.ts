@@ -34,7 +34,15 @@ function fallbackDraft(
 }
 
 async function aiDraft(prompt: string) {
-  const provider = process.env.AI_PROVIDER || 'openai'
+  const provider =
+    process.env.AI_PROVIDER ||
+    (process.env.GOOGLE_GEMINI_API_KEY
+      ? 'gemini'
+      : process.env.OPENAI_API_KEY
+        ? 'openai'
+        : process.env.ANTHROPIC_API_KEY
+          ? 'claude'
+          : 'template')
   if (provider === 'openai' && process.env.OPENAI_API_KEY) {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -319,10 +327,8 @@ export async function runAutomationForUser(userId: string, runId: string) {
         orderBy: { updated_at: 'desc' },
       }),
     ])
-    if (!preference?.enabled || !user || !resume?.parsed_data) {
-      throw new Error(
-        'Automation requires enabled settings and a parsed resume'
-      )
+    if (!preference || !user || !resume?.parsed_data) {
+      throw new Error('Automation requires saved settings and a parsed resume')
     }
 
     const recommendations = await recommendJobsForUser(userId, {
@@ -338,15 +344,48 @@ export async function runAutomationForUser(userId: string, runId: string) {
         0,
         MAX_DRAFTS_PER_RUN
       )) {
-        const existing = await prisma.emailDraft.findFirst({
-          where: { user_id: userId, job_id: recommendation.jobId },
-        })
-        if (existing) continue
-
         const job = await prisma.job.findUnique({
           where: { id: recommendation.jobId },
         })
         if (!job) continue
+        const existing = await prisma.emailDraft.findFirst({
+          where: { user_id: userId, job_id: recommendation.jobId },
+        })
+        if (existing) {
+          if (
+            preference.create_gmail_drafts &&
+            job.recipient_email &&
+            !existing.gmail_draft_id
+          ) {
+            try {
+              if (existing.recipient_email !== job.recipient_email) {
+                await prisma.emailDraft.update({
+                  where: { id: existing.id },
+                  data: { recipient_email: job.recipient_email },
+                })
+              }
+              await syncGmailDraft({
+                userId,
+                draftId: existing.id,
+                recipient: job.recipient_email,
+                subject: existing.subject,
+                body: existing.body,
+                resume,
+              })
+              gmailDraftsCreated += 1
+            } catch (error) {
+              await prisma.emailDraft.update({
+                where: { id: existing.id },
+                data: {
+                  gmail_error:
+                    error instanceof Error ? error.message : String(error),
+                },
+              })
+            }
+          }
+          continue
+        }
+
         const content = await draftContent({
           name: user.name,
           job,

@@ -1,15 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Link2, Loader2, Unplug } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
 export function IntegrationsSettings() {
+  const searchParams = useSearchParams()
   const [gmail, setGmail] = useState<{ email: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState(false)
   const [error, setError] = useState('')
+  const gmailResult = searchParams.get('gmail')
 
   useEffect(() => {
     fetch('/api/automation')
@@ -59,6 +62,17 @@ export function IntegrationsSettings() {
           ) : null}
           {error ? (
             <p className="mt-3 text-sm text-destructive">{error}</p>
+          ) : null}
+          {gmailResult === 'connected' ? (
+            <p className="mt-3 text-sm text-emerald-600">
+              Gmail connected successfully.
+            </p>
+          ) : null}
+          {gmailResult && gmailResult !== 'connected' ? (
+            <p className="mt-3 text-sm text-destructive">
+              Gmail connection was not completed. Confirm that this account is
+              an approved OAuth test user and try again.
+            </p>
           ) : null}
         </div>
 

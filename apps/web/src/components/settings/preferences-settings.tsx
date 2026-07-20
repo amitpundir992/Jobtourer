@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { Loader2, Play, Save } from 'lucide-react'
+import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 
@@ -327,6 +328,7 @@ export function PreferencesSettings() {
                 defaultValue={Math.round(data.preference.minimum_match * 100)}
                 className={fieldClass}
               >
+                <option value="50">50%</option>
                 <option value="60">60%</option>
                 <option value="70">70%</option>
                 <option value="75">75%</option>
@@ -353,10 +355,34 @@ export function PreferencesSettings() {
                 defaultChecked={data.preference.create_gmail_drafts}
                 disabled={!data.gmail}
                 className="h-4 w-4"
+                title={
+                  data.gmail
+                    ? 'Create Gmail drafts for jobs with a hiring email'
+                    : 'Connect Gmail first'
+                }
               />
               Create Gmail drafts when an email is available
             </label>
           </div>
+
+          {!data.gmail ? (
+            <p className="text-sm text-muted-foreground">
+              <Link
+                className="font-medium text-primary hover:underline"
+                href="/settings?tab=integrations"
+              >
+                Connect Gmail
+              </Link>{' '}
+              to enable Gmail drafts. Jobs without a published hiring email are
+              skipped automatically.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Gmail drafts are created only for matched jobs with a published
+              hiring email. Missing-email jobs are skipped without failing the
+              run.
+            </p>
+          )}
 
           {data.preference.next_run_at ? (
             <p className="text-sm text-muted-foreground">
@@ -377,7 +403,7 @@ export function PreferencesSettings() {
             <Button
               type="button"
               variant="outline"
-              disabled={running || !data.preference.enabled}
+              disabled={running}
               onClick={runNow}
             >
               {running ? (
@@ -408,7 +434,8 @@ export function PreferencesSettings() {
                 <span>{new Date(run.created_at).toLocaleString()}</span>
                 <span className="text-muted-foreground">
                   {run.jobs_scanned} scanned, {run.matches_saved} matches,{' '}
-                  {run.drafts_created} drafts
+                  {run.drafts_created} internal drafts,{' '}
+                  {run.gmail_drafts_created} Gmail drafts
                   {run.error ? ` - ${run.error}` : ''}
                 </span>
                 <span className="capitalize">{run.status}</span>

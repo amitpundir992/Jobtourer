@@ -535,7 +535,7 @@ export async function recommendJobsForUser(
             location: job.location,
             url: job.url,
             fingerprint,
-            recipient_email: job.recipientEmail,
+            recipient_email: job.recipientEmail ?? undefined,
             tags: job.tags,
             salary_min: job.salaryMin,
             salary_max: job.salaryMax,
@@ -578,7 +578,7 @@ export async function recommendJobsForUser(
         return {
           jobId: savedJob.id,
           score,
-          recipientEmail: job.recipientEmail ?? null,
+          recipientEmail: savedJob.recipient_email,
         }
       })
     )

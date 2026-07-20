@@ -28,6 +28,13 @@ const automationSchema = z
         message: 'Select at least one weekday.',
       })
     }
+    if (input.create_gmail_drafts && !input.create_email_drafts) {
+      context.addIssue({
+        code: 'custom',
+        path: ['create_email_drafts'],
+        message: 'Internal drafts are required to create Gmail drafts.',
+      })
+    }
   })
 
 function validTimezone(timezone: string) {
@@ -152,25 +159,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const [preference, profile, resume] = await Promise.all([
-    prisma.automationPreference.findUnique({ where: { user_id: user.id } }),
+  const [profile, resume] = await Promise.all([
     prisma.profile.findUnique({ where: { user_id: user.id } }),
     prisma.resume.findFirst({
       where: { user_id: user.id, is_default: true },
     }),
   ])
-  if (!preference?.enabled) {
-    return NextResponse.json(
-      { error: 'Enable and save automation before running it.' },
-      { status: 400 }
-    )
-  }
   if (!profile?.preferred_role || !resume?.parsed_data) {
     return NextResponse.json(
       { error: 'A completed profile and parsed default resume are required.' },
       { status: 400 }
     )
   }
+
+  await prisma.automationPreference.upsert({
+    where: { user_id: user.id },
+    update: {},
+    create: {
+      user_id: user.id,
+      enabled: false,
+      minimum_match: 0.7,
+      create_email_drafts: true,
+      create_gmail_drafts: false,
+      schedule_type: 'daily',
+      week_days: [],
+      month_day: 1,
+      schedule_hour: 8,
+      timezone: 'Asia/Kolkata',
+    },
+  })
 
   const run = await prisma.automationRun.create({
     data: { user_id: user.id, trigger: 'manual' },
