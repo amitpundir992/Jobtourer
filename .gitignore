@@ -107,6 +107,7 @@ dump.rdb
 
 # Build files
 .turbo/
+**/.trigger/
 .cache/
 .parcel-cache
 .eslintcache

@@ -1,3 +1,4 @@
+import { prismaExtension } from '@trigger.dev/build/extensions/prisma'
 import { defineConfig } from '@trigger.dev/sdk'
 
 export default defineConfig({
@@ -5,6 +6,16 @@ export default defineConfig({
   dirs: ['./trigger'],
   runtime: 'node-22',
   maxDuration: 900,
+  build: {
+    external: ['@prisma/client'],
+    extensions: [
+      prismaExtension({
+        mode: 'legacy',
+        schema: '../../packages/database/prisma/schema.prisma',
+        version: '5.22.0',
+      }),
+    ],
+  },
   retries: {
     enabledInDev: false,
     default: {

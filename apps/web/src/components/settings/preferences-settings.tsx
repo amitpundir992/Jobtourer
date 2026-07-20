@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 type ScheduleType = 'daily' | 'weekly' | 'monthly'
 
 interface AutomationData {
+  trigger_environment: 'development' | 'production'
   preference: {
     enabled: boolean
     minimum_match: number
@@ -69,6 +70,9 @@ export function PreferencesSettings() {
   const [saving, setSaving] = useState(false)
   const [running, setRunning] = useState(false)
   const [saved, setSaved] = useState(false)
+  const activeRun = data?.runs.find((run) =>
+    ['queued', 'processing'].includes(run.status)
+  )
 
   const loadAutomation = useCallback(async () => {
     const response = await fetch('/api/automation', { cache: 'no-store' })
@@ -403,7 +407,7 @@ export function PreferencesSettings() {
             <Button
               type="button"
               variant="outline"
-              disabled={running}
+              disabled={running || Boolean(activeRun)}
               onClick={runNow}
             >
               {running ? (
@@ -411,12 +415,25 @@ export function PreferencesSettings() {
               ) : (
                 <Play className="mr-2 h-4 w-4" />
               )}
-              Run now
+              {activeRun?.status === 'queued'
+                ? 'Queued'
+                : activeRun?.status === 'processing'
+                  ? 'Running'
+                  : 'Run now'}
             </Button>
             {saved ? (
               <span className="text-sm text-emerald-600">Saved</span>
             ) : null}
           </div>
+          {activeRun ? (
+            <p className="text-sm text-muted-foreground">
+              {activeRun.status === 'processing'
+                ? 'Automation is searching and scoring jobs now.'
+                : data.trigger_environment === 'development'
+                  ? 'Waiting for the local Trigger.dev worker. Keep pnpm trigger:dev running in another terminal.'
+                  : 'The run is queued in Trigger.dev and will start when a worker is available.'}
+            </p>
+          ) : null}
         </form>
       ) : (
         <p className="text-sm text-destructive">{error}</p>

@@ -82,6 +82,9 @@ export async function GET(request: NextRequest) {
     },
     gmail,
     runs,
+    trigger_environment: process.env.TRIGGER_SECRET_KEY?.startsWith('tr_dev_')
+      ? 'development'
+      : 'production',
   })
 }
 
@@ -170,6 +173,17 @@ export async function POST(request: NextRequest) {
       { error: 'A completed profile and parsed default resume are required.' },
       { status: 400 }
     )
+  }
+
+  const activeRun = await prisma.automationRun.findFirst({
+    where: {
+      user_id: user.id,
+      status: { in: ['queued', 'processing'] },
+    },
+    orderBy: { created_at: 'desc' },
+  })
+  if (activeRun) {
+    return NextResponse.json({ run: activeRun }, { status: 202 })
   }
 
   await prisma.automationPreference.upsert({
