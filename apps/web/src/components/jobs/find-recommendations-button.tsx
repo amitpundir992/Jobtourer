@@ -6,6 +6,17 @@ import { Loader2, Sparkles } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
+const sourceLabels: Record<string, string> = {
+  remoteok: 'Remote OK',
+  greenhouse: 'Greenhouse',
+  lever: 'Lever',
+  ashby: 'Ashby',
+  smartrecruiters: 'SmartRecruiters',
+  remotive: 'Remotive',
+  jobicy: 'Jobicy',
+  arbeitnow: 'Arbeitnow',
+}
+
 export function FindRecommendationsButton() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -33,10 +44,8 @@ export function FindRecommendationsButton() {
 
       const saved = result.recommendationsSaved ?? 0
       const savedSources = Object.entries(result.recommendationSources ?? {})
-        .map(
-          ([source, count]) =>
-            `${source === 'remoteok' ? 'Remote OK' : source[0].toUpperCase() + source.slice(1)} ${count}`
-        )
+        .filter(([, count]) => count > 0)
+        .map(([source, count]) => `${sourceLabels[source] ?? source} ${count}`)
         .join(', ')
       setMessage(
         saved > 0

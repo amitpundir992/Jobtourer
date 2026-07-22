@@ -13,6 +13,9 @@ export const jobQuerySchema = z.object({
       'remoteok',
       'ashby',
       'smartrecruiters',
+      'remotive',
+      'jobicy',
+      'arbeitnow',
     ])
     .catch('all'),
   minMatch: z.coerce.number().int().min(0).max(100).catch(0),

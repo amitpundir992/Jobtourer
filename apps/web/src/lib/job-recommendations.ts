@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { prisma } from '@jobtourer/database'
 import type { ParsedResumeData } from '@jobtourer/types'
+import { Redis } from '@upstash/redis'
 
 const MAX_SOURCE_JOBS = 500
 const MAX_RECOMMENDATIONS = 100
@@ -8,6 +9,7 @@ const DEFAULT_GREENHOUSE_BOARDS = ['cloudflare', 'datadog', 'mongodb']
 const DEFAULT_LEVER_SITES = ['palantir', 'spotify', 'highspot', 'aircall']
 const DEFAULT_ASHBY_BOARDS = ['openai', 'anthropic', 'linear']
 const DEFAULT_SMARTRECRUITERS_COMPANIES = ['BoschGroup', 'Visa']
+const PUBLIC_FEED_CACHE_SECONDS = 60 * 60
 
 const COMPANY_NAMES: Record<string, string> = {
   aircall: 'Aircall',
@@ -79,9 +81,59 @@ interface SmartRecruitersJob {
   typeOfEmployment?: { label?: string }
 }
 
+interface RemotiveJob {
+  id: number
+  url: string
+  title: string
+  company_name: string
+  category?: string
+  job_type?: string
+  publication_date?: string
+  candidate_required_location?: string
+  description?: string
+}
+
+interface JobicyJob {
+  id: number | string
+  url: string
+  jobTitle: string
+  companyName: string
+  jobIndustry?: string[] | string
+  jobType?: string[] | string
+  jobGeo?: string
+  jobLevel?: string
+  jobDescription?: string
+  pubDate?: string
+  salaryMin?: number
+  salaryMax?: number
+}
+
+interface ArbeitnowJob {
+  slug: string
+  company_name: string
+  title: string
+  description?: string
+  remote?: boolean
+  url: string
+  tags?: string[]
+  job_types?: string[]
+  location?: string
+  created_at?: number
+}
+
+type JobSource =
+  | 'remoteok'
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'smartrecruiters'
+  | 'remotive'
+  | 'jobicy'
+  | 'arbeitnow'
+
 interface CandidateJob {
   externalId: string
-  source: 'remoteok' | 'greenhouse' | 'lever' | 'ashby' | 'smartrecruiters'
+  source: JobSource
   title: string
   company: string
   description: string
@@ -93,6 +145,58 @@ interface CandidateJob {
   postedAt?: Date
   fingerprint?: string
   recipientEmail?: string
+}
+
+type CachedCandidateJob = Omit<CandidateJob, 'postedAt'> & {
+  postedAt?: string
+}
+
+let sourceCache: Redis | null | undefined
+
+function redisCache() {
+  if (sourceCache !== undefined) return sourceCache
+  sourceCache =
+    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+      ? Redis.fromEnv()
+      : null
+  return sourceCache
+}
+
+async function cachedPublicFeed(
+  source: JobSource,
+  ttlSeconds: number,
+  load: () => Promise<CandidateJob[]>
+) {
+  const redis = redisCache()
+  const key = `jobtourer:job-feed:v1:${source}`
+
+  if (redis) {
+    try {
+      const cached = await redis.get<CachedCandidateJob[]>(key)
+      if (cached) {
+        return cached.map((job) => ({
+          ...job,
+          postedAt: job.postedAt ? new Date(job.postedAt) : undefined,
+        }))
+      }
+    } catch (error) {
+      console.warn(`Could not read the ${source} job cache:`, error)
+    }
+  }
+
+  const jobs = await load()
+  if (redis) {
+    const serialized = jobs.map((job) => ({
+      ...job,
+      postedAt: job.postedAt?.toISOString(),
+    }))
+    await redis
+      .set(key, serialized, { ex: ttlSeconds })
+      .catch((error) =>
+        console.warn(`Could not update the ${source} job cache:`, error)
+      )
+  }
+  return jobs
 }
 
 function configuredSources(name: string, defaults: string[], lowercase = true) {
@@ -416,6 +520,133 @@ async function fetchSmartRecruitersJobs(
   )
 }
 
+async function fetchRemotiveJobs(): Promise<CandidateJob[]> {
+  return cachedPublicFeed(
+    'remotive',
+    PUBLIC_FEED_CACHE_SECONDS * 6,
+    async () => {
+      const response = await fetch(
+        'https://remotive.com/api/remote-jobs?limit=200',
+        {
+          headers: {
+            Accept: 'application/json',
+            'User-Agent': 'JobTourer/1.0 (job recommendation service)',
+          },
+          signal: AbortSignal.timeout(15_000),
+          cache: 'no-store',
+        }
+      )
+      if (!response.ok) throw new Error(`Remotive returned ${response.status}`)
+
+      const data = (await response.json()) as { jobs?: RemotiveJob[] }
+      return (data.jobs ?? []).slice(0, 200).map((job) => {
+        const description = cleanText(job.description ?? '')
+        return {
+          externalId: `remotive-${job.id}`,
+          source: 'remotive' as const,
+          title: job.title,
+          company: job.company_name,
+          description,
+          location: job.candidate_required_location || 'Remote',
+          url: job.url,
+          tags: [job.category, job.job_type, 'Remote'].filter(
+            (tag): tag is string => Boolean(tag)
+          ),
+          postedAt:
+            job.publication_date &&
+            !Number.isNaN(Date.parse(job.publication_date))
+              ? new Date(job.publication_date)
+              : undefined,
+          recipientEmail: hiringEmail(description),
+        }
+      })
+    }
+  )
+}
+
+async function fetchJobicyJobs(): Promise<CandidateJob[]> {
+  return cachedPublicFeed('jobicy', PUBLIC_FEED_CACHE_SECONDS, async () => {
+    const response = await fetch(
+      'https://jobicy.com/api/v2/remote-jobs?count=100',
+      {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'JobTourer/1.0 (job recommendation service)',
+        },
+        signal: AbortSignal.timeout(15_000),
+        cache: 'no-store',
+      }
+    )
+    if (!response.ok) throw new Error(`Jobicy returned ${response.status}`)
+
+    const data = (await response.json()) as { jobs?: JobicyJob[] }
+    return (data.jobs ?? []).slice(0, 100).map((job) => {
+      const description = cleanText(job.jobDescription ?? '')
+      const industries = Array.isArray(job.jobIndustry)
+        ? job.jobIndustry
+        : [job.jobIndustry]
+      const jobTypes = Array.isArray(job.jobType) ? job.jobType : [job.jobType]
+      return {
+        externalId: `jobicy-${job.id}`,
+        source: 'jobicy' as const,
+        title: job.jobTitle,
+        company: job.companyName,
+        description,
+        location: job.jobGeo || 'Remote',
+        url: job.url,
+        tags: [...industries, ...jobTypes, job.jobLevel, 'Remote'].filter(
+          (tag): tag is string => Boolean(tag)
+        ),
+        salaryMin: job.salaryMin || undefined,
+        salaryMax: job.salaryMax || undefined,
+        postedAt:
+          job.pubDate && !Number.isNaN(Date.parse(job.pubDate))
+            ? new Date(job.pubDate)
+            : undefined,
+        recipientEmail: hiringEmail(description),
+      }
+    })
+  })
+}
+
+async function fetchArbeitnowJobs(): Promise<CandidateJob[]> {
+  return cachedPublicFeed('arbeitnow', PUBLIC_FEED_CACHE_SECONDS, async () => {
+    const response = await fetch(
+      'https://www.arbeitnow.com/api/job-board-api',
+      {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'JobTourer/1.0 (job recommendation service)',
+        },
+        signal: AbortSignal.timeout(15_000),
+        cache: 'no-store',
+      }
+    )
+    if (!response.ok) throw new Error(`Arbeitnow returned ${response.status}`)
+
+    const data = (await response.json()) as { data?: ArbeitnowJob[] }
+    return (data.data ?? []).slice(0, MAX_SOURCE_JOBS).map((job) => {
+      const description = cleanText(job.description ?? '')
+      return {
+        externalId: `arbeitnow-${job.slug}`,
+        source: 'arbeitnow' as const,
+        title: job.title,
+        company: job.company_name,
+        description,
+        location: job.remote ? 'Remote' : job.location || 'See job posting',
+        url: job.url,
+        tags: [
+          ...(job.tags ?? []),
+          ...(job.job_types ?? []),
+          ...(job.remote ? ['Remote'] : []),
+        ],
+        postedAt: job.created_at ? new Date(job.created_at * 1000) : undefined,
+        recipientEmail: hiringEmail(description),
+      }
+    })
+  })
+}
+
 interface RecommendationOptions {
   minimumMatch?: number
   maxRecommendations?: number
@@ -466,13 +697,37 @@ export async function recommendJobsForUser(
     fetchLeverJobs(leverSites),
     fetchAshbyJobs(ashbyBoards),
     fetchSmartRecruitersJobs(smartRecruitersCompanies),
+    fetchRemotiveJobs(),
+    fetchJobicyJobs(),
+    fetchArbeitnowJobs(),
   ])
+  const sourceNames: JobSource[] = [
+    'remoteok',
+    'greenhouse',
+    'lever',
+    'ashby',
+    'smartrecruiters',
+    'remotive',
+    'jobicy',
+    'arbeitnow',
+  ]
+  sourceResults.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.warn(
+        `Could not fetch jobs from ${sourceNames[index]}:`,
+        result.reason
+      )
+    }
+  })
   const [
     remoteOkJobs,
     greenhouseJobs,
     leverJobs,
     ashbyJobs,
     smartRecruitersJobs,
+    remotiveJobs,
+    jobicyJobs,
+    arbeitnowJobs,
   ] = sourceResults.map((result) =>
     result.status === 'fulfilled' ? result.value : []
   )
@@ -482,6 +737,9 @@ export async function recommendJobsForUser(
     ...leverJobs,
     ...ashbyJobs,
     ...smartRecruitersJobs,
+    ...remotiveJobs,
+    ...jobicyJobs,
+    ...arbeitnowJobs,
   ]
   const scoredCandidates = candidates
     .map((job) => ({
@@ -494,16 +752,13 @@ export async function recommendJobsForUser(
     )
     .sort((a, b) => b.score - a.score)
   const selectedIds = new Set<string>()
-  const sourceBalanced = [
-    'remoteok',
-    'greenhouse',
-    'lever',
-    'ashby',
-    'smartrecruiters',
-  ].flatMap((source) =>
-    scoredCandidates
-      .filter(({ job }) => job.source === source)
-      .slice(0, 10)
+  const topJobsBySource = sourceNames.map((source) =>
+    scoredCandidates.filter(({ job }) => job.source === source).slice(0, 10)
+  )
+  const sourceBalanced = Array.from({ length: 10 }).flatMap((_, rank) =>
+    topJobsBySource
+      .map((jobs) => jobs[rank])
+      .filter((candidate) => candidate !== undefined)
       .filter(({ job }) => {
         if (selectedIds.has(job.externalId)) return false
         selectedIds.add(job.externalId)
@@ -590,7 +845,16 @@ export async function recommendJobsForUser(
       counts[job.source] += 1
       return counts
     },
-    { remoteok: 0, greenhouse: 0, lever: 0, ashby: 0, smartrecruiters: 0 }
+    {
+      remoteok: 0,
+      greenhouse: 0,
+      lever: 0,
+      ashby: 0,
+      smartrecruiters: 0,
+      remotive: 0,
+      jobicy: 0,
+      arbeitnow: 0,
+    }
   )
 
   return {
@@ -600,6 +864,9 @@ export async function recommendJobsForUser(
       lever: leverJobs.length,
       ashby: ashbyJobs.length,
       smartrecruiters: smartRecruitersJobs.length,
+      remotive: remotiveJobs.length,
+      jobicy: jobicyJobs.length,
+      arbeitnow: arbeitnowJobs.length,
     },
     recommendationSources,
     jobsScanned: candidates.length,

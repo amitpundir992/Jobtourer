@@ -28,6 +28,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@tanstack/react-query": "^5.28.0",
     "@trigger.dev/sdk": "4.5.4",
+    "@upstash/redis": "^1.38.0",
     "axios": "^1.6.8",
     "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.0",
@@ -49,9 +50,9 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@trigger.dev/build": "4.5.4",
     "@next/env": "15.5.20",
     "@prisma/nextjs-monorepo-workaround-plugin": "^7.8.0",
+    "@trigger.dev/build": "4.5.4",
     "@types/node": "^20.12.12",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",

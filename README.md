@@ -31,6 +31,9 @@ JobTourer currently collects jobs from:
 - Lever job boards
 - Ashby job boards
 - SmartRecruiters job boards
+- Remotive
+- Jobicy
+- Arbeitnow
 
 Other portals such as LinkedIn, Indeed, Glassdoor, Google Jobs, and Wellfound are not currently connected.
 

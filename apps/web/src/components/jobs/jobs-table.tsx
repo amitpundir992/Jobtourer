@@ -15,6 +15,9 @@ const sourceDetails: Record<string, { label: string; url: string }> = {
     label: 'SmartRecruiters',
     url: 'https://www.smartrecruiters.com',
   },
+  remotive: { label: 'Remotive', url: 'https://remotive.com' },
+  jobicy: { label: 'Jobicy', url: 'https://jobicy.com' },
+  arbeitnow: { label: 'Arbeitnow', url: 'https://www.arbeitnow.com' },
 }
 
 function paginationItems(currentPage: number, totalPages: number) {

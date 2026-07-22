@@ -150,6 +150,9 @@ export function JobsFilters({
               <option value="remoteok">Remote OK</option>
               <option value="ashby">Ashby</option>
               <option value="smartrecruiters">SmartRecruiters</option>
+              <option value="remotive">Remotive</option>
+              <option value="jobicy">Jobicy</option>
+              <option value="arbeitnow">Arbeitnow</option>
             </select>
           </label>
           <label className="space-y-1 text-sm">
